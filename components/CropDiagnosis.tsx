@@ -21,7 +21,11 @@ interface DiagnosisResult {
   urgency: 'Low' | 'Medium' | 'High';
 }
 
-export default function CropDiagnosis() {
+interface CropDiagnosisProps {
+  darkMode: boolean
+}
+
+export default function CropDiagnosis({ darkMode }: CropDiagnosisProps) {
   const [image, setImage] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [result, setResult] = useState<DiagnosisResult | null>(null)
@@ -50,13 +54,13 @@ export default function CropDiagnosis() {
     if (file) {
       // Validate file size
       if (file.size > MAX_IMAGE_SIZE) {
-        setError(getTranslation('diagnosis.imageTooLarge', currentLang) || 'Image too large. Please use an image smaller than 5MB.')
+        setError(getTranslation('dashboard.cropDiagnosis.imageTooLarge', currentLang) || 'Image too large. Please use an image smaller than 5MB.')
         return
       }
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        setError(getTranslation('diagnosis.invalidFileType', currentLang) || 'Please upload a valid image file.')
+        setError(getTranslation('dashboard.cropDiagnosis.invalidFileType', currentLang) || 'Please upload a valid image file.')
         return
       }
 
@@ -74,21 +78,55 @@ export default function CropDiagnosis() {
     }
   }
 
-  const analyzeCrop = async (isRetry = false) => {
-    if (!image) return
+  // Compress image to avoid payload limits (Max 1024px, 0.7 quality)
+  const compressImage = (base64Str: string, maxWidth = 1024, maxHeight = 1024): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.src = base64Str
+      img.onload = () => {
+        let width = img.width
+        let height = img.height
 
-    if (!isRetry) {
-      setRetryCount(0)
-    }
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height
+            height = maxHeight
+          }
+        }
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', 0.7))
+      }
+    })
+  }
+
+  const analyzeCrop = async () => {
+    if (!image) return
 
     setIsAnalyzing(true)
     setResult(null)
     setError(null)
+    setRetryCount(0)
     setProgress(10)
 
     try {
-      const base64Image = image.split(',')[1]
+      // Step 1: Compress Image
+      // Update UI if possible, or just implicit
+      const compressedBase64 = await compressImage(image)
+      const base64Data = compressedBase64.split(',')[1] // Extract data
       setProgress(30)
+
+      const user = storage.getUser()
+      const location = user?.location
 
       const prompt = `You are an expert agricultural pathologist. Analyze this crop image carefully.
 
@@ -109,66 +147,64 @@ Provide your analysis in this EXACT JSON format:
 
 Be specific and practical. Respond ONLY with valid JSON.`
 
-      const user = storage.getUser()
-      const location = user?.location
+      let success = false
+      let attempts = 0
+      let finalParsedResult: DiagnosisResult | null = null
 
-      setProgress(50)
-      const response = await groq.analyzeCropImage(base64Image, prompt, currentLang, location)
-      setProgress(70)
+      while (attempts <= MAX_RETRIES && !success) {
+        try {
+          attempts++
+          if (attempts > 1) {
+            setRetryCount(attempts - 1)
+            await new Promise(resolve => setTimeout(resolve, 1500)) // Wait before retry
+          }
 
-      console.log('Raw Groq Response:', response)
+          setProgress(40 + (attempts * 10)) // Visual progress
 
-      let parsedResult: DiagnosisResult
+          const response = await groq.analyzeCropImage(base64Data, prompt, currentLang, location)
+          console.log(`Attempt ${attempts} Raw Response:`, response)
 
-      try {
-        // Try parsing as JSON first
-        const cleanResponse = response
-          .replace(/```json/g, '')
-          .replace(/```/g, '')
-          .replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/, '$1') // Extract JSON object
-          .trim()
+          // Try parsing
+          const cleanResponse = response
+            .replace(/```json/g, '')
+            .replace(/```/g, '')
+            .replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/, '$1')
+            .trim()
 
-        parsedResult = JSON.parse(cleanResponse)
+          finalParsedResult = JSON.parse(cleanResponse)
 
-        // Validate parsed result
-        if (!parsedResult.crop_name || !parsedResult.health_status) {
-          throw new Error('Invalid response structure')
-        }
-      } catch (e) {
-        console.log('JSON parse failed, attempting text parsing...', e)
-        // Fallback: Parse the Markdown text response
-        parsedResult = parseMarkdownResponse(response)
+          // Validate
+          if (finalParsedResult && finalParsedResult.crop_name && finalParsedResult.health_status) {
+            success = true
+          } else {
+            throw new Error('Incomplete JSON response')
+          }
 
-        // If parsing still fails, retry
-        if (!parsedResult.crop_name || parsedResult.crop_name === 'Unknown Crop') {
-          throw new Error('Failed to parse response')
+        } catch (e) {
+          console.warn(`Attempt ${attempts} failed:`, e)
+          if (attempts > MAX_RETRIES) {
+            throw e // Throw only on final failure
+          }
         }
       }
 
-      setProgress(100)
-      setResult(parsedResult)
-      setRetryCount(0)
+      if (success && finalParsedResult) {
+        setProgress(100)
+        setResult(finalParsedResult)
+      } else {
+        throw new Error('Analysis failed after retries')
+      }
+
     } catch (error) {
-      console.error('Analysis error:', error)
-
-      // Retry logic
-      if (retryCount < MAX_RETRIES) {
-        setRetryCount(retryCount + 1)
-        setProgress(0)
-        setTimeout(() => analyzeCrop(true), 1000) // Retry after 1 second
-        return
-      }
-
+      console.error('Final Analysis error:', error)
       setError(
-        getTranslation('diagnosis.analysisFailedRetry', currentLang) ||
-        'Failed to analyze image after multiple attempts. Please try with a clearer, well-lit photo of the affected crop.'
+        getTranslation('dashboard.cropDiagnosis.analysisFailedRetry', currentLang) ||
+        'Failed to analyze image. Please ensure the photo is clear and try again.'
       )
       setResult(null)
     } finally {
-      if (retryCount >= MAX_RETRIES || result) {
-        setIsAnalyzing(false)
-        setProgress(0)
-      }
+      setIsAnalyzing(false)
+      setProgress(0)
     }
   }
 
@@ -179,16 +215,16 @@ Be specific and practical. Respond ONLY with valid JSON.`
       className="mb-6"
     >
       <div className="mb-6">
-        <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+        <h2 className={`text-3xl font-bold flex items-center gap-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
           <Camera className="text-green-600" size={36} />
-          {getTranslation('diagnosis.title', currentLang)}
+          {getTranslation('dashboard.cropDiagnosis.title', currentLang)}
         </h2>
-        <p className="text-gray-600 text-lg mt-2">
-          {getTranslation('diagnosis.description', currentLang)}
+        <p className={`text-lg mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          {getTranslation('dashboard.cropDiagnosis.description', currentLang)}
         </p>
       </div>
 
-      <div className="glass-effect rounded-3xl p-6 shadow-xl">
+      <div className={`glass-effect rounded-3xl p-4 sm:p-6 shadow-xl ${darkMode ? 'bg-gray-800/90 text-white' : 'bg-white/90 text-gray-800'}`}>
         <input
           ref={fileInputRef}
           type="file"

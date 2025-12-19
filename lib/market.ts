@@ -140,6 +140,24 @@ export class MarketService {
       ],
       distance: 25,
     },
+    {
+      id: '8',
+      name: 'Strawberry',
+      price: 24000, // Expensive!
+      change: 15.5,
+      trend: 'up',
+      unit: 'quintal',
+      market: 'Mahabaleshwar Market',
+      lastUpdated: new Date(),
+      priceHistory: [
+        { date: '2025-10-24', price: 21000 },
+        { date: '2025-10-25', price: 22000 },
+        { date: '2025-10-26', price: 23500 },
+        { date: '2025-10-27', price: 23800 },
+        { date: '2025-10-31', price: 24000 },
+      ],
+      distance: 120,
+    },
   ]
 
   static getMarketPrices(): MarketPrice[] {
@@ -172,10 +190,26 @@ export class MarketService {
     }
   }
 
-  static searchPrices(query: string): MarketPrice[] {
-    return this.DEMO_PRICES.filter((price) =>
-      price.name.toLowerCase().includes(query.toLowerCase())
-    )
+  static async searchPrices(query: string): Promise<MarketPrice[]> {
+    try {
+      // Try real API first
+      const { AGMARKNETService } = await import('./agmarknet')
+      const realPrices = await AGMARKNETService.getPricesForCommodity(query)
+
+      if (realPrices.length > 0) {
+        return realPrices
+      }
+
+      // Fallback to local filtering of demo data
+      return this.DEMO_PRICES.filter((price) =>
+        price.name.toLowerCase().includes(query.toLowerCase())
+      )
+    } catch (error) {
+      console.error('Search failed:', error)
+      return this.DEMO_PRICES.filter((price) =>
+        price.name.toLowerCase().includes(query.toLowerCase())
+      )
+    }
   }
 
   static getPriceById(id: string): MarketPrice | undefined {

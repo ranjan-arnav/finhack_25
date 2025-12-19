@@ -467,7 +467,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
       case 'learn':
         return <KnowledgeCard fullView onOpenAI={() => setShowAIChat(true)} />
       case 'diagnosis':
-        return <CropDiagnosis />
+        return <CropDiagnosis darkMode={darkMode} />
       case 'recommendation':
         return <CropRecommendation />
       case 'inputs':

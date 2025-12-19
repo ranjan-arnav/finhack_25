@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Play, FileText, Video, ArrowRight, X, IndianRupee, TrendingUp, RefreshCw } from 'lucide-react'
+import { BookOpen, Play, FileText, Video, ArrowRight, X, IndianRupee, TrendingUp, RefreshCw, Search, Tag, Filter } from 'lucide-react'
 import { getTranslation, getCurrentLanguage, type Language } from '@/lib/i18n'
+import SimpleMarkdown from './SimpleMarkdown'
 
 interface KnowledgeCardProps {
   fullView?: boolean
@@ -12,6 +13,8 @@ interface KnowledgeCardProps {
 
 export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeCardProps) {
   const [currentLang, setCurrentLang] = useState<Language>('en')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('All')
 
   useEffect(() => {
     setCurrentLang(getCurrentLanguage())
@@ -135,84 +138,48 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
     // Economics & Market Articles
     {
       key: 'msp',
-      title: getTranslation('knowledgeCard.articles.mspTitle', currentLang),
-      category: getTranslation('knowledgeCard.articles.mspCategory', currentLang),
-      duration: getTranslation('knowledgeCard.articles.mspDuration', currentLang),
-      icon: IndianRupee, // Using IndianRupee from lucide-react if added to imports, else fallback
+      title: getTranslation('knowledgeCard.articles.msp.title', currentLang),
+      category: getTranslation('knowledgeCard.articles.msp.category', currentLang),
+      duration: getTranslation('knowledgeCard.articles.msp.duration', currentLang),
+      icon: IndianRupee,
       color: 'from-purple-500 to-indigo-600',
-      content: `# ${getTranslation('knowledgeCard.articles.mspTitle', currentLang)}
-
-## What is MSP?
-Minimum Support Price (MSP) is a form of market intervention by the Government of India to insure agricultural producers against any sharp fall in farm prices. It is announced by the Government of India at the beginning of the sowing season for certain crops.
-
-## Why is it important?
-- **Price Safety:** It guarantees farmers a minimum price for their produce.
-- **Income Security:** Protects farmers from market fluctuations and distress sales.
-- **Incentive:** Encourages farmers to invest in technology and improve productivity.
-- **Food Security:** Ensures adequate food grain production in the country.
-
-## How is it decided?
-The Commission for Agricultural Costs and Prices (CACP) recommends MSP based on:
-1. Cost of production
-2. Demand and supply
-3. Price trends in the market
-4. Inter-crop price parity
-5. Terms of trade between agriculture and non-agriculture sectors
-
-## Covered Crops
-There are currently 23 crops covered under MSP, including:
-- **Cereals:** Paddy, Wheat, Maize, Sorghum, Pearl millet, Barley, Ragi
-- **Pulses:** Gram, Tur, Moong, Urad, Lentil
-- **Oilseeds:** Groundnut, Rapeseed-mustard, Soyabean, Seasamum, Sunflower, Safflower, Nigerseed
-- **Commercial:** Copra, Sugarcane, Cotton, Raw jute`
+      content: getTranslation('knowledgeCard.articles.msp.content', currentLang)
     },
     {
       key: 'demandSupply',
-      title: getTranslation('knowledgeCard.articles.demandTitle', currentLang),
-      category: getTranslation('knowledgeCard.articles.demandCategory', currentLang),
-      duration: getTranslation('knowledgeCard.articles.demandDuration', currentLang),
+      title: getTranslation('knowledgeCard.articles.demandSupply.title', currentLang),
+      category: getTranslation('knowledgeCard.articles.demandSupply.category', currentLang),
+      duration: getTranslation('knowledgeCard.articles.demandSupply.duration', currentLang),
       icon: TrendingUp,
       color: 'from-blue-500 to-cyan-600',
-      content: `# ${getTranslation('knowledgeCard.articles.demandTitle', currentLang)}
-
-## Basic Concept
-- **Demand:** How much of a crop consumers want to buy.
-- **Supply:** How much of a crop farmers have grown and brought to the market.
-
-## How Prices Change
-- **Validating High Prices:** When Demand is high but Supply is low (e.g., bad harvest), prices go UP.
-- **Validating Low Prices:** When Supply is high (e.g., bumper harvest) but Demand is stable, prices go DOWN.
-
-## Strategies for Farmers
-1. **Grow Off-Season Crops:** Try to harvest when others are not, to get better prices due to lower supply.
-2. **Storage:** Use cold storage or warehouses to hold produce when prices are low and sell when prices rise.
-3. **Diversification:** Don't put all your eggs in one basket. Grow different crops to spread the risk.
-4. **Market Intelligence:** Use apps like Kisan Mitra to track price trends before harvesting.`
+      content: getTranslation('knowledgeCard.articles.demandSupply.content', currentLang)
     },
     {
       key: 'cropCycles',
-      title: getTranslation('knowledgeCard.articles.cyclesTitle', currentLang),
-      category: getTranslation('knowledgeCard.articles.cyclesCategory', currentLang),
-      duration: getTranslation('knowledgeCard.articles.cyclesDuration', currentLang),
+      title: getTranslation('knowledgeCard.articles.cropCycles.title', currentLang),
+      category: getTranslation('knowledgeCard.articles.cropCycles.category', currentLang),
+      duration: getTranslation('knowledgeCard.articles.cropCycles.duration', currentLang),
       icon: RefreshCw,
       color: 'from-orange-400 to-red-500',
-      content: `# ${getTranslation('knowledgeCard.articles.cyclesTitle', currentLang)}
-
-## Understanding Commodity Cycles
-Agricultural prices often follow predictable cycles or patterns over years. Understanding these can help you plan better.
-
-## Types of Cycles
-1. **Seasonal Cycles:** Prices are usually lowest during harvest time (peak supply) and highest just before the next harvest (lean season).
-2. **Cobweb Cycle:** High prices this year often lead to overproduction next year, causing prices to crash. This crash leads to lower production the following year, causing prices to spike again.
-
-## Breaking the Cycle
-- **Don't Chase Last Year's Prices:** Just because onions were expensive last year doesn't mean they will be this year. Everyone might plant onions, crashing the price.
-- **Look at Long-Term Trends:** Focus on crops with steady demand growth (e.g., fruits, vegetables, proteins).
-- **Value Addition:** Processing your crop (e.g., making tomato puree instead of selling raw tomatoes) can protect you from raw commodity price swings.`
+      content: getTranslation('knowledgeCard.articles.cropCycles.content', currentLang)
     },
   ]
 
   const articles = getLocalizedArticles()
+
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(articles.map(a => a.category)))
+    return ['All', ...cats]
+  }, [articles])
+
+  const filteredArticles = useMemo(() => {
+    return articles.filter(article => {
+      const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        article.content.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesCategory = selectedCategory === 'All' || article.category === selectedCategory
+      return matchesSearch && matchesCategory
+    })
+  }, [searchQuery, selectedCategory, articles])
 
   const [selectedArticle, setSelectedArticle] = useState<typeof articles[0] | null>(null)
 
@@ -221,94 +188,127 @@ Agricultural prices often follow predictable cycles or patterns over years. Unde
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: fullView ? 0 : 0.6 }}
-      className="mb-6"
+      className="mb-8"
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h3 className="text-2xl font-bold flex items-center gap-2 text-gray-800 dark:text-white">
           <BookOpen className="text-indigo-600" size={32} />
           {getTranslation('dashboard.learnAndGrow', currentLang)}
         </h3>
-        <button className="font-semibold text-lg text-indigo-600 dark:text-indigo-300">
-          {getTranslation('knowledgeCard.viewAll', currentLang)}
-        </button>
+
+        {/* Search Bar */}
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            placeholder={getTranslation('crops.searchCrops', currentLang)} // Reusing 'Search...'
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+          />
+        </div>
       </div>
 
       <div className="glass-effect rounded-3xl p-4 md:p-6 shadow-xl dark:bg-gray-800/80 dark:border dark:border-gray-700">
-        <div className="space-y-4">
-          {articles.map((article, index) => {
-            const IconComponent = article.icon
-            return (
-              <motion.div
-                key={article.title}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.7 + index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                onClick={() => setSelectedArticle(article)}
-                className="bg-white dark:bg-gray-800/80 rounded-2xl p-5 shadow-md border-2 border-gray-100 dark:border-gray-700 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-400 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 bg-gradient-to-br ${article.color} rounded-xl flex items-center justify-center shadow-md flex-shrink-0`}>
-                    <IconComponent size={28} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-900/40 px-3 py-1 rounded-full">
-                        {article.category}
-                      </span>
-                      <span className="text-xs text-gray-600 dark:text-gray-300">• {article.duration}</span>
+
+        {/* Category Filters */}
+        <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${selectedCategory === cat
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+            >
+              {cat === 'All' ? getTranslation('knowledgeCard.viewAll', currentLang) : cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Articles Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <AnimatePresence mode='popLayout'>
+            {filteredArticles.length > 0 ? (
+              filteredArticles.map((article, index) => {
+                const IconComponent = article.icon
+                return (
+                  <motion.div
+                    layout
+                    key={article.title}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => setSelectedArticle(article)}
+                    onKeyDown={(e) => e.key === 'Enter' && setSelectedArticle(article)}
+                    role="button"
+                    tabIndex={0}
+                    className="bg-white dark:bg-gray-800/80 rounded-2xl p-5 shadow-md border-2 border-gray-100 dark:border-gray-700 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-400 transition-all hover:-translate-y-1 group"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 bg-gradient-to-br ${article.color} rounded-xl flex items-center justify-center shadow-md flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                        <IconComponent size={24} className="text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-200 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                            {article.category}
+                          </span>
+                        </div>
+                        <h4 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-1 truncate leading-tight">
+                          {article.title}
+                        </h4>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span>{article.duration}</span>
+                        </div>
+                      </div>
+                      <ArrowRight className="text-gray-300 dark:text-gray-600 group-hover:text-indigo-500 transition-colors self-center" size={20} />
                     </div>
-                    <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">
-                      {article.title}
-                    </h4>
-                  </div>
-                  <ArrowRight className="text-gray-400 dark:text-gray-300 flex-shrink-0" size={24} />
-                </div>
-              </motion.div>
-            )
-          })}
+                  </motion.div>
+                )
+              })
+            ) : (
+              <div className="col-span-full py-10 text-center text-gray-500 dark:text-gray-400">
+                <Search size={48} className="mx-auto mb-4 opacity-20" />
+                <p>No articles found for "{searchQuery}"</p>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
 
         <motion.button
           whileTap={{ scale: 0.95 }}
-          className="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-5 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+          className="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 hover:shadow-xl transition-shadow"
         >
-          <Play size={24} />
+          <Play size={20} />
           {getTranslation('knowledgeCard.startLearning', currentLang)}
         </motion.button>
       </div>
 
       {/* AI Assistant CTA */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.8 }}
-        whileHover={{ scale: 1.02 }}
-        className="mt-6 glass-effect rounded-3xl p-5 md:p-8 shadow-xl text-center bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-900 dark:border dark:border-gray-700"
+        transition={{ delay: 0.4 }}
+        className="mt-6 glass-effect rounded-3xl p-6 shadow-xl text-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-900 dark:border dark:border-gray-700"
       >
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="text-6xl mb-4"
-        >
-          🤖
-        </motion.div>
-        <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-          {getTranslation('knowledgeCard.askAI', currentLang)}
-        </h3>
-        <p className="text-gray-600 dark:text-gray-300 mb-6 text-lg">
-          {getTranslation('knowledgeCard.instantAnswers', currentLang)}
-        </p>
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <span className="text-4xl">🤖</span>
+          <div className="text-left">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+              {getTranslation('knowledgeCard.askAI', currentLang)}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {getTranslation('knowledgeCard.instantAnswers', currentLang)}
+            </p>
+          </div>
+        </div>
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={onOpenAI}
-          className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-lg hover:shadow-2xl transition-shadow"
+          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-shadow"
         >
           {getTranslation('knowledgeCard.chatWithAI', currentLang)}
         </motion.button>
@@ -321,35 +321,50 @@ Agricultural prices often follow predictable cycles or patterns over years. Unde
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={() => setSelectedArticle(null)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-100 dark:border-gray-700"
+              className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl border border-gray-100 dark:border-gray-700"
             >
-              <div className="flex items-center justify-between mb-6">
-                <div className={`w-16 h-16 bg-gradient-to-br ${selectedArticle.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                  <selectedArticle.icon size={32} className="text-white" />
+              <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-start bg-gray-50 dark:bg-gray-800/50 rounded-t-3xl">
+                <div className="flex gap-4">
+                  <div className={`w-12 h-12 bg-gradient-to-br ${selectedArticle.color} rounded-xl flex items-center justify-center shadow-sm`}>
+                    <selectedArticle.icon size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+                      {selectedArticle.category}
+                    </span>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 leading-tight mt-1">
+                      {selectedArticle.title}
+                    </h2>
+                  </div>
                 </div>
                 <button
                   onClick={() => setSelectedArticle(null)}
                   aria-label={getTranslation('common.close', currentLang)}
-                  className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <X size={24} className="text-gray-600 dark:text-gray-300" />
+                  <X size={20} />
                 </button>
               </div>
 
-              <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">{selectedArticle.title}</h2>
+              <div className="p-6 overflow-y-auto custom-scrollbar">
+                <SimpleMarkdown content={selectedArticle.content} />
+              </div>
 
-              <div className="prose prose-lg max-w-none dark:prose-invert">
-                <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-200 leading-relaxed">
-                  {selectedArticle.content}
-                </div>
+              <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-3xl">
+                <button
+                  onClick={() => setSelectedArticle(null)}
+                  className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Close Article
+                </button>
               </div>
             </motion.div>
           </motion.div>
