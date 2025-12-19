@@ -168,14 +168,14 @@ Tip must be practical, season-aware if possible, and include an actionable next 
         const irrigationMessage = getTranslation(irrigationKey, currentLang).replace('{amount}', irrigationAmount)
         const irrigationFill = Math.max(20, Math.min(100, Math.round(drynessScore)))
 
-        const tasks: string[] = [getTranslation('dashboard.smartTasksSoil', currentLang)]
+        const tasks: string[] = [getTranslation('dashboard.smartActions.soilTask', currentLang)]
         if (drynessScore > 55) {
-          tasks.push(getTranslation('dashboard.smartTasksIrrigation', currentLang))
+          tasks.push(getTranslation('dashboard.smartActions.irrigationTask', currentLang))
         }
         tasks.push(
           primaryCrop
-            ? getTranslation('dashboard.smartTasksPest', currentLang).replace('{crop}', primaryCrop)
-            : getTranslation('dashboard.smartTasksMarket', currentLang)
+            ? getTranslation('dashboard.smartActions.pestTask', currentLang).replace('{crop}', primaryCrop)
+            : getTranslation('dashboard.smartActions.marketTask', currentLang)
         )
 
         const dayValue = new Date().getDate()
@@ -226,7 +226,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                 </div>
                 <p className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>28°C</p>
                 <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {getTranslation('crops.partlyCloudy', currentLang)} · {weatherSnapshot.rainChance}%
+                  {getTranslation('weather.partlycloudy', currentLang)} · {weatherSnapshot.rainChance}%
                 </p>
               </motion.div>
 
@@ -263,10 +263,10 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                   </div>
                   <div>
                     <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                      {getTranslation('dashboard.aiInsightsTitle', currentLang)}
+                      {getTranslation('dashboard.aiInsights.title', currentLang)}
                     </h3>
                     <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {getTranslation('dashboard.aiInsightsDescription', currentLang)}
+                      {getTranslation('dashboard.aiInsights.description', currentLang)}
                     </p>
                   </div>
                 </div>
@@ -274,11 +274,11 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                 <div className={`rounded-2xl border border-dashed ${darkMode ? 'border-purple-500/40 bg-gray-900/40' : 'border-purple-200 bg-purple-50/60'} p-4 min-h-[120px]`}>
                   {aiInsightLoading ? (
                     <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {getTranslation('dashboard.aiInsightsLoading', currentLang)}
+                      {getTranslation('dashboard.aiInsights.loading', currentLang)}
                     </p>
                   ) : aiInsightError ? (
                     <p className="text-red-500 text-sm">
-                      {getTranslation('dashboard.aiInsightsError', currentLang)}
+                      {getTranslation('dashboard.aiInsights.error', currentLang)}
                     </p>
                   ) : (
                     <p className={`${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{aiInsight}</p>
@@ -295,14 +295,14 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                     className="btn-primary flex-1 py-3 flex items-center justify-center gap-2"
                   >
                     <MessageCircle size={20} />
-                    {getTranslation('dashboard.aiInsightsAction', currentLang)}
+                    {getTranslation('dashboard.aiInsights.action', currentLang)}
                   </button>
                   <button
                     onClick={fetchAiInsight}
                     className="btn-secondary py-3 px-4 flex items-center justify-center gap-2"
                   >
                     <RefreshCw size={18} className={aiInsightLoading ? 'animate-spin' : ''} />
-                    {getTranslation('dashboard.aiInsightsRefresh', currentLang)}
+                    {getTranslation('dashboard.aiInsights.refresh', currentLang)}
                   </button>
                 </div>
               </div>
@@ -320,7 +320,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
               className="mb-6"
             >
               <h3 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                🤖 {getTranslation('crops.aiPoweredFeatures', currentLang)}
+                🤖 {getTranslation('knowledgeCard.aiPoweredFeatures', currentLang)}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <motion.button
@@ -330,10 +330,10 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                 >
                   <MessageCircle className={darkMode ? 'text-blue-400 mb-2' : 'text-blue-600 mb-2'} size={26} />
                   <p className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                    {getTranslation('crops.aiAssistant', currentLang)}
+                    {getTranslation('knowledgeCard.aiAssistant', currentLang)}
                   </p>
                   <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {getTranslation('crops.chatInYourLanguage', currentLang)}
+                    {getTranslation('knowledgeCard.chatInYourLanguage', currentLang)}
                   </p>
                 </motion.button>
 
@@ -343,8 +343,8 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                   className={`glass-effect rounded-2xl p-4 shadow-md text-left ${darkMode ? 'bg-gray-800/90' : ''}`}
                 >
                   <Sprout className={darkMode ? 'text-green-400 mb-2' : 'text-green-600 mb-2'} size={26} />
-                  <p className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{getTranslation('diagnosis.title', currentLang)}</p>
-                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{getTranslation('diagnosis.scanCropDiseases', currentLang)}</p>
+                  <p className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{getTranslation('dashboard.cropDiagnosis.title', currentLang)}</p>
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{getTranslation('dashboard.cropDiagnosis.scanCropDiseases', currentLang)}</p>
                 </motion.button>
 
                 <motion.button
@@ -354,10 +354,10 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                 >
                   <Sun className={darkMode ? 'text-yellow-400 mb-2' : 'text-yellow-600 mb-2'} size={26} />
                   <p className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                    {getTranslation('crops.cropAdvisor', currentLang)}
+                    {getTranslation('dashboard.cropAdvisor', currentLang)}
                   </p>
                   <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {getTranslation('crops.whatToGrowNext', currentLang)}
+                    {getTranslation('dashboard.whatToGrowNext', currentLang)}
                   </p>
                 </motion.button>
 
@@ -381,16 +381,16 @@ Tip must be practical, season-aware if possible, and include an actionable next 
               className="mb-6"
             >
               <h3 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                ✨ {getTranslation('dashboard.smartActionsTitle', currentLang)}
+                ✨ {getTranslation('dashboard.smartActions.title', currentLang)}
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className={`glass-effect rounded-2xl p-4 shadow-md flex flex-col gap-3 ${darkMode ? 'bg-gray-800/90' : ''}`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                        {getTranslation('dashboard.smartTasksTitle', currentLang)}
+                        {getTranslation('dashboard.smartActions.title', currentLang)}
                       </p>
-                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{user.location}</p>
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{user.location === 'Your Farm' || user.location === 'Unknown' ? getTranslation('dashboard.yourFarm', currentLang) : user.location}</p>
                     </div>
                     <Sparkles size={22} className="text-emerald-400" />
                   </div>
@@ -410,7 +410,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                     }}
                   >
                     <MessageCircle size={16} />
-                    {getTranslation('dashboard.aiInsightsAction', currentLang)}
+                    {getTranslation('dashboard.aiInsights.action', currentLang)}
                   </button>
                 </div>
 
@@ -418,7 +418,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                   <div className="flex items-center gap-2">
                     <Droplets size={20} className="text-blue-400" />
                     <p className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                      {getTranslation('dashboard.irrigationPlannerTitle', currentLang)}
+                      {getTranslation('dashboard.smartActions.irrigationTask', currentLang)}
                     </p>
                   </div>
                   <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{irrigationMessage}</div>
@@ -438,14 +438,14 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                   <div className="flex items-center gap-2">
                     <TrendingUp size={20} className="text-purple-400" />
                     <p className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                      {getTranslation('dashboard.marketPulseTitle', currentLang)} {marketTrendLabel}
+                      {getTranslation('dashboard.smartActions.marketTask', currentLang)} {marketTrendLabel}
                     </p>
                   </div>
                   <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{marketMessage}</div>
                   <button
                     className="btn-secondary flex items-center justify-center gap-2"
                     onClick={() => {
-                      setAiInitialMessage(primaryCrop ? `${marketMessage}\n${getTranslation('dashboard.aiInsightsAction', currentLang)}` : marketMessage)
+                      setAiInitialMessage(primaryCrop ? `${marketMessage}\n${getTranslation('dashboard.aiInsights.action', currentLang)}` : marketMessage)
                       setShowAIChat(true)
                     }}
                   >

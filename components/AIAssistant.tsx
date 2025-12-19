@@ -305,7 +305,7 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
                 <MessageCircle size={24} />
               </div>
               <div>
-                <h2 className="text-xl font-bold">{getTranslation('crops.aiAssistant', currentLang)}</h2>
+                <h2 className="text-xl font-bold">{getTranslation('dashboard.aiAssistant', currentLang)}</h2>
                 <p className="text-sm text-green-100">{getTranslation('ai.askAnything', currentLang)}</p>
               </div>
             </div>

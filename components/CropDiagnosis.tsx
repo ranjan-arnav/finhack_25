@@ -27,8 +27,12 @@ export default function CropDiagnosis() {
   const [result, setResult] = useState<DiagnosisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [currentLang, setCurrentLang] = useState<Language>('en')
+  const [retryCount, setRetryCount] = useState(0)
+  const [progress, setProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const groq = new GroqService()
+  const MAX_RETRIES = 2
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 
   useEffect(() => {
     setCurrentLang(getCurrentLanguage())
@@ -44,64 +48,127 @@ export default function CropDiagnosis() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // Validate file size
+      if (file.size > MAX_IMAGE_SIZE) {
+        setError(getTranslation('diagnosis.imageTooLarge', currentLang) || 'Image too large. Please use an image smaller than 5MB.')
+        return
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError(getTranslation('diagnosis.invalidFileType', currentLang) || 'Please upload a valid image file.')
+        return
+      }
+
       const reader = new FileReader()
       reader.onloadend = () => {
         setImage(reader.result as string)
         setResult(null)
+        setError(null)
+        setRetryCount(0)
+      }
+      reader.onerror = () => {
+        setError('Failed to read image file. Please try again.')
       }
       reader.readAsDataURL(file)
     }
   }
 
-  const analyzeCrop = async () => {
+  const analyzeCrop = async (isRetry = false) => {
     if (!image) return
+
+    if (!isRetry) {
+      setRetryCount(0)
+    }
 
     setIsAnalyzing(true)
     setResult(null)
     setError(null)
+    setProgress(10)
 
     try {
       const base64Image = image.split(',')[1]
-      const prompt = `You are an expert agricultural pathologist. Analyze this crop image and provide:
+      setProgress(30)
 
-1. **Crop Identification**: What crop is this?
-2. **Health Status**: Is the crop healthy or diseased?
-3. **Disease/Issue Detected**: If any disease or nutrient deficiency is present, identify it clearly.
-4. **Symptoms**: List the visible symptoms you can see.
-5. **Treatment**: Provide detailed treatment recommendations including:
-   - Organic solutions
-   - Chemical pesticides/fungicides (with names)
-   - Cultural practices
-6. **Prevention**: How to prevent this in the future.
-7. **Urgency**: Rate the urgency (Low/Medium/High).
+      const prompt = `You are an expert agricultural pathologist. Analyze this crop image carefully.
 
-Be specific and practical. Format your response clearly with headings.`
+Provide your analysis in this EXACT JSON format:
+{
+  "crop_name": "Name of the crop",
+  "health_status": "Healthy" or "Diseased",
+  "disease_name": "Name of disease if diseased, otherwise 'None'",
+  "symptoms": ["symptom 1", "symptom 2"],
+  "treatment": {
+    "organic": ["organic solution 1", "organic solution 2"],
+    "chemical": ["chemical solution 1", "chemical solution 2"],
+    "cultural": ["cultural practice 1", "cultural practice 2"]
+  },
+  "prevention": ["prevention tip 1", "prevention tip 2"],
+  "urgency": "Low", "Medium", or "High"
+}
+
+Be specific and practical. Respond ONLY with valid JSON.`
 
       const user = storage.getUser()
       const location = user?.location
 
+      setProgress(50)
       const response = await groq.analyzeCropImage(base64Image, prompt, currentLang, location)
+      setProgress(70)
+
       console.log('Raw Groq Response:', response)
 
       let parsedResult: DiagnosisResult
 
       try {
         // Try parsing as JSON first
-        const cleanResponse = response.replace(/```json/g, '').replace(/```/g, '').trim()
+        const cleanResponse = response
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/, '$1') // Extract JSON object
+          .trim()
+
         parsedResult = JSON.parse(cleanResponse)
+
+        // Validate parsed result
+        if (!parsedResult.crop_name || !parsedResult.health_status) {
+          throw new Error('Invalid response structure')
+        }
       } catch (e) {
         console.log('JSON parse failed, attempting text parsing...', e)
         // Fallback: Parse the Markdown text response
         parsedResult = parseMarkdownResponse(response)
+
+        // If parsing still fails, retry
+        if (!parsedResult.crop_name || parsedResult.crop_name === 'Unknown Crop') {
+          throw new Error('Failed to parse response')
+        }
       }
 
+      setProgress(100)
       setResult(parsedResult)
+      setRetryCount(0)
     } catch (error) {
       console.error('Analysis error:', error)
-      setError('Failed to analyze image. Please try again with a clearer photo.')
+
+      // Retry logic
+      if (retryCount < MAX_RETRIES) {
+        setRetryCount(retryCount + 1)
+        setProgress(0)
+        setTimeout(() => analyzeCrop(true), 1000) // Retry after 1 second
+        return
+      }
+
+      setError(
+        getTranslation('diagnosis.analysisFailedRetry', currentLang) ||
+        'Failed to analyze image after multiple attempts. Please try with a clearer, well-lit photo of the affected crop.'
+      )
       setResult(null)
     } finally {
-      setIsAnalyzing(false)
+      if (retryCount >= MAX_RETRIES || result) {
+        setIsAnalyzing(false)
+        setProgress(0)
+      }
     }
   }
 
@@ -184,7 +251,7 @@ Be specific and practical. Format your response clearly with headings.`
             {!result && !isAnalyzing && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={analyzeCrop}
+                onClick={() => analyzeCrop()}
                 className="w-full btn-primary py-6 text-xl flex items-center justify-center gap-3"
               >
                 <Sparkles size={32} />
@@ -196,8 +263,17 @@ Be specific and practical. Format your response clearly with headings.`
               <div className="flex flex-col items-center justify-center py-8 space-y-4">
                 <Loader2 className="animate-spin text-green-600" size={48} />
                 <p className="text-lg font-semibold text-gray-700">
-                  {getTranslation('diagnosis.analyzing', currentLang)}
+                  {retryCount > 0
+                    ? `${getTranslation('diagnosis.retrying', currentLang) || 'Retrying'} (${retryCount}/${MAX_RETRIES})...`
+                    : getTranslation('diagnosis.analyzing', currentLang)
+                  }
                 </p>
+                <div className="w-full max-w-xs bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
                 <p className="text-sm text-gray-600">{getTranslation('diagnosis.analyzingSubtext', currentLang)}</p>
               </div>
             )}
@@ -318,10 +394,8 @@ Be specific and practical. Format your response clearly with headings.`
         <div className="flex items-start gap-3">
           <AlertCircle className="text-orange-600 flex-shrink-0" size={24} />
           <div>
-            <p className="font-semibold text-gray-800">Note:</p>
             <p className="text-sm text-gray-600">
-              AI analysis is for guidance only. For serious crop issues, please consult a local
-              agricultural expert or extension officer.
+              {getTranslation('dashboard.cropDiagnosis.note', currentLang)}
             </p>
           </div>
         </div>

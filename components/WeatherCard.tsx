@@ -162,25 +162,25 @@ export default function WeatherCard({ fullView = false, darkMode = false }: Weat
           <div className="text-center">
             <Droplets className="mx-auto mb-2 text-blue-600" size={28} />
             <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              {getTranslation('crops.humidity', currentLang)}
+              {getTranslation('dashboard.humidity', currentLang)}
             </p>
             <p className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{weather.current.humidity}%</p>
           </div>
           <div className="text-center">
             <Wind className={`mx-auto mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} size={28} />
             <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              {getTranslation('crops.wind', currentLang)}
+              {getTranslation('dashboard.wind', currentLang)}
             </p>
             <p className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{weather.current.wind} km/h</p>
           </div>
           <div className="text-center">
             <CloudRain className="mx-auto mb-2 text-blue-500" size={28} />
-            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{getTranslation('crops.rain', currentLang)}</p>
+            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{getTranslation('dashboard.rain', currentLang)}</p>
             <p className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{weather.current.rainfall} mm</p>
           </div>
           <div className="text-center">
             <Sun className="mx-auto mb-2 text-yellow-500" size={28} />
-            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{getTranslation('crops.uv', currentLang)}</p>
+            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{getTranslation('dashboard.uv', currentLang)}</p>
             <p className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{weather.current.uvIndex}</p>
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function WeatherCard({ fullView = false, darkMode = false }: Weat
         >
           <h4 className="font-bold mb-3 flex items-center gap-2 text-primary">
             <AlertCircle className="text-orange-500" size={24} />
-            {getTranslation('crops.farmAdvisory', currentLang)}
+            {getTranslation('weather.farmAdvisory', currentLang)}
           </h4>
           <div className="space-y-2">
             {advice.map((key, index) => (
@@ -212,7 +212,7 @@ export default function WeatherCard({ fullView = false, darkMode = false }: Weat
       <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
         {weather.forecast.map((day, index) => {
           const IconComponent = getWeatherIcon(day.condition)
-          const dayTranslationKey = day.day === 'Today' ? 'crops.today' : day.day === 'Tomorrow' ? 'crops.tomorrow' : ''
+          const dayTranslationKey = day.day === 'Today' ? 'dashboard.today' : day.day === 'Tomorrow' ? 'dashboard.tomorrow' : `days.${day.day.toLowerCase()}`
           return (
             <motion.div
               key={day.day}
@@ -223,7 +223,7 @@ export default function WeatherCard({ fullView = false, darkMode = false }: Weat
               className={`glass-effect rounded-2xl p-4 text-center shadow-md ${darkMode ? 'bg-gray-800/90' : ''}`}
             >
               <p className="text-sm font-semibold mb-2 text-secondary">
-                {dayTranslationKey ? getTranslation(dayTranslationKey, currentLang) : day.day}
+                {getTranslation(dayTranslationKey, currentLang) === dayTranslationKey ? day.day : getTranslation(dayTranslationKey, currentLang)}
               </p>
               <div className="w-12 h-12 mx-auto mb-2 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
                 <IconComponent size={24} className="text-white" />

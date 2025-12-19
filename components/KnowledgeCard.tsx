@@ -226,10 +226,10 @@ Agricultural prices often follow predictable cycles or patterns over years. Unde
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-2xl font-bold flex items-center gap-2 text-gray-800 dark:text-white">
           <BookOpen className="text-indigo-600" size={32} />
-          {getTranslation('crops.learnAndGrow', currentLang)}
+          {getTranslation('dashboard.learnAndGrow', currentLang)}
         </h3>
         <button className="font-semibold text-lg text-indigo-600 dark:text-indigo-300">
-          {getTranslation('crops.viewAll', currentLang)}
+          {getTranslation('knowledgeCard.viewAll', currentLang)}
         </button>
       </div>
 
