@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Play, FileText, Video, ArrowRight, X } from 'lucide-react'
+import { BookOpen, Play, FileText, Video, ArrowRight, X, IndianRupee, TrendingUp, RefreshCw } from 'lucide-react'
 import { getTranslation, getCurrentLanguage, type Language } from '@/lib/i18n'
 
 interface KnowledgeCardProps {
@@ -12,18 +12,18 @@ interface KnowledgeCardProps {
 
 export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeCardProps) {
   const [currentLang, setCurrentLang] = useState<Language>('en')
-  
+
   useEffect(() => {
     setCurrentLang(getCurrentLanguage())
-    
+
     const handleLanguageChange = () => {
       setCurrentLang(getCurrentLanguage())
     }
-    
+
     window.addEventListener('languageChange', handleLanguageChange)
     return () => window.removeEventListener('languageChange', handleLanguageChange)
   }, [])
-  
+
   const getLocalizedArticles = () => [
     {
       key: 'wheatCultivation',
@@ -132,6 +132,84 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
 - Practice crop rotation
 - Use cover crops`
     },
+    // Economics & Market Articles
+    {
+      key: 'msp',
+      title: getTranslation('knowledgeCard.articles.mspTitle', currentLang),
+      category: getTranslation('knowledgeCard.articles.mspCategory', currentLang),
+      duration: getTranslation('knowledgeCard.articles.mspDuration', currentLang),
+      icon: IndianRupee, // Using IndianRupee from lucide-react if added to imports, else fallback
+      color: 'from-purple-500 to-indigo-600',
+      content: `# ${getTranslation('knowledgeCard.articles.mspTitle', currentLang)}
+
+## What is MSP?
+Minimum Support Price (MSP) is a form of market intervention by the Government of India to insure agricultural producers against any sharp fall in farm prices. It is announced by the Government of India at the beginning of the sowing season for certain crops.
+
+## Why is it important?
+- **Price Safety:** It guarantees farmers a minimum price for their produce.
+- **Income Security:** Protects farmers from market fluctuations and distress sales.
+- **Incentive:** Encourages farmers to invest in technology and improve productivity.
+- **Food Security:** Ensures adequate food grain production in the country.
+
+## How is it decided?
+The Commission for Agricultural Costs and Prices (CACP) recommends MSP based on:
+1. Cost of production
+2. Demand and supply
+3. Price trends in the market
+4. Inter-crop price parity
+5. Terms of trade between agriculture and non-agriculture sectors
+
+## Covered Crops
+There are currently 23 crops covered under MSP, including:
+- **Cereals:** Paddy, Wheat, Maize, Sorghum, Pearl millet, Barley, Ragi
+- **Pulses:** Gram, Tur, Moong, Urad, Lentil
+- **Oilseeds:** Groundnut, Rapeseed-mustard, Soyabean, Seasamum, Sunflower, Safflower, Nigerseed
+- **Commercial:** Copra, Sugarcane, Cotton, Raw jute`
+    },
+    {
+      key: 'demandSupply',
+      title: getTranslation('knowledgeCard.articles.demandTitle', currentLang),
+      category: getTranslation('knowledgeCard.articles.demandCategory', currentLang),
+      duration: getTranslation('knowledgeCard.articles.demandDuration', currentLang),
+      icon: TrendingUp,
+      color: 'from-blue-500 to-cyan-600',
+      content: `# ${getTranslation('knowledgeCard.articles.demandTitle', currentLang)}
+
+## Basic Concept
+- **Demand:** How much of a crop consumers want to buy.
+- **Supply:** How much of a crop farmers have grown and brought to the market.
+
+## How Prices Change
+- **Validating High Prices:** When Demand is high but Supply is low (e.g., bad harvest), prices go UP.
+- **Validating Low Prices:** When Supply is high (e.g., bumper harvest) but Demand is stable, prices go DOWN.
+
+## Strategies for Farmers
+1. **Grow Off-Season Crops:** Try to harvest when others are not, to get better prices due to lower supply.
+2. **Storage:** Use cold storage or warehouses to hold produce when prices are low and sell when prices rise.
+3. **Diversification:** Don't put all your eggs in one basket. Grow different crops to spread the risk.
+4. **Market Intelligence:** Use apps like Kisan Mitra to track price trends before harvesting.`
+    },
+    {
+      key: 'cropCycles',
+      title: getTranslation('knowledgeCard.articles.cyclesTitle', currentLang),
+      category: getTranslation('knowledgeCard.articles.cyclesCategory', currentLang),
+      duration: getTranslation('knowledgeCard.articles.cyclesDuration', currentLang),
+      icon: RefreshCw,
+      color: 'from-orange-400 to-red-500',
+      content: `# ${getTranslation('knowledgeCard.articles.cyclesTitle', currentLang)}
+
+## Understanding Commodity Cycles
+Agricultural prices often follow predictable cycles or patterns over years. Understanding these can help you plan better.
+
+## Types of Cycles
+1. **Seasonal Cycles:** Prices are usually lowest during harvest time (peak supply) and highest just before the next harvest (lean season).
+2. **Cobweb Cycle:** High prices this year often lead to overproduction next year, causing prices to crash. This crash leads to lower production the following year, causing prices to spike again.
+
+## Breaking the Cycle
+- **Don't Chase Last Year's Prices:** Just because onions were expensive last year doesn't mean they will be this year. Everyone might plant onions, crashing the price.
+- **Look at Long-Term Trends:** Focus on crops with steady demand growth (e.g., fruits, vegetables, proteins).
+- **Value Addition:** Processing your crop (e.g., making tomato puree instead of selling raw tomatoes) can protect you from raw commodity price swings.`
+    },
   ]
 
   const articles = getLocalizedArticles()
@@ -155,7 +233,7 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
         </button>
       </div>
 
-      <div className="glass-effect rounded-3xl p-6 shadow-xl dark:bg-gray-800/80 dark:border dark:border-gray-700">
+      <div className="glass-effect rounded-3xl p-4 md:p-6 shadow-xl dark:bg-gray-800/80 dark:border dark:border-gray-700">
         <div className="space-y-4">
           {articles.map((article, index) => {
             const IconComponent = article.icon
@@ -206,7 +284,7 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.8 }}
         whileHover={{ scale: 1.02 }}
-        className="mt-6 glass-effect rounded-3xl p-8 shadow-xl text-center bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-900 dark:border dark:border-gray-700"
+        className="mt-6 glass-effect rounded-3xl p-5 md:p-8 shadow-xl text-center bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-900 dark:border dark:border-gray-700"
       >
         <motion.div
           animate={{
@@ -251,7 +329,7 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-100 dark:border-gray-700"
+              className="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-100 dark:border-gray-700"
             >
               <div className="flex items-center justify-between mb-6">
                 <div className={`w-16 h-16 bg-gradient-to-br ${selectedArticle.color} rounded-2xl flex items-center justify-center shadow-lg`}>
@@ -265,9 +343,9 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
                   <X size={24} className="text-gray-600 dark:text-gray-300" />
                 </button>
               </div>
-              
+
               <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">{selectedArticle.title}</h2>
-              
+
               <div className="prose prose-lg max-w-none dark:prose-invert">
                 <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-200 leading-relaxed">
                   {selectedArticle.content}

@@ -158,7 +158,7 @@ export default function WeatherCard({ fullView = false, darkMode = false }: Weat
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center">
             <Droplets className="mx-auto mb-2 text-blue-600" size={28} />
             <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -199,9 +199,9 @@ export default function WeatherCard({ fullView = false, darkMode = false }: Weat
             {getTranslation('crops.farmAdvisory', currentLang)}
           </h4>
           <div className="space-y-2">
-            {advice.map((tip, index) => (
+            {advice.map((key, index) => (
               <p key={index} className="text-sm text-primary">
-                {tip}
+                {getTranslation(key, currentLang)}
               </p>
             ))}
           </div>
@@ -209,7 +209,7 @@ export default function WeatherCard({ fullView = false, darkMode = false }: Weat
       )}
 
       {/* Forecast */}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
         {weather.forecast.map((day, index) => {
           const IconComponent = getWeatherIcon(day.condition)
           const dayTranslationKey = day.day === 'Today' ? 'crops.today' : day.day === 'Tomorrow' ? 'crops.tomorrow' : ''

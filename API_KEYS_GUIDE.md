@@ -3,7 +3,7 @@
 ## ✅ What You Have Now:
 
 ```bash
-NEXT_PUBLIC_GEMINI_API_KEY=AIzaSyACLt7S6QcpV3hA1YCB9sJ-tde87dgylzs ✅
+NEXT_PUBLIC_GEMINI_API_KEY=AIzaSy... (Redacted for Security) ✅
 ```
 
 **This is the MOST IMPORTANT one! ✅ You already have it!**
@@ -217,7 +217,7 @@ Just fill in the ones you want:
 
 ```bash
 # 1. Gemini AI (REQUIRED) ✅ YOU HAVE THIS
-NEXT_PUBLIC_GEMINI_API_KEY=AIzaSyACLt7S6QcpV3hA1YCB9sJ-tde87dgylzs
+NEXT_PUBLIC_GEMINI_API_KEY=AIzaSy... (Redacted for Security)
 
 # 2. OpenWeather (RECOMMENDED) - Add this one next!
 NEXT_PUBLIC_OPENWEATHER_API_KEY=

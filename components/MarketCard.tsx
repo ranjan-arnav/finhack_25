@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingUp, TrendingDown, IndianRupee, AlertTriangle, RefreshCw, Search, LineChart } from 'lucide-react'
+import { TrendingUp, TrendingDown, IndianRupee, AlertTriangle, RefreshCw, Search, LineChart, Calculator, MapPin, Truck } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { MarketService, type MarketPrice } from '@/lib/market'
 import { getTranslation, getCurrentLanguage, type Language } from '@/lib/i18n'
@@ -17,6 +17,12 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [showBuyerModal, setShowBuyerModal] = useState(false)
   const [currentLang, setCurrentLang] = useState<Language>('en')
+
+  // Profit Calculator State
+  const [showCalculator, setShowCalculator] = useState(false)
+  const [calcQuantity, setCalcQuantity] = useState<number>(10)
+  const [calcTransportCost, setCalcTransportCost] = useState<number>(15)
+  const [selectedCalcCrop, setSelectedCalcCrop] = useState<string>('')
 
   useEffect(() => {
     loadPrices()
@@ -107,17 +113,145 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
           <TrendingUp className="text-purple-600" size={32} />
           {getTranslation('crops.marketPrices', currentLang)}
         </h3>
-        <button
-          onClick={loadPrices}
-          disabled={loading}
-          className={`font-semibold text-lg flex items-center gap-2 disabled:opacity-50 text-purple-600 dark:text-purple-400`}
-        >
-          <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          {getTranslation('common.refresh', currentLang)}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCalculator(!showCalculator)}
+            className={`font-semibold text-lg flex items-center gap-2 p-2 rounded-xl transition-colors ${showCalculator
+              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+              : 'text-indigo-600 dark:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            title={getTranslation('profitCalculator.title', currentLang)}
+          >
+            <Calculator size={24} />
+          </button>
+          <button
+            onClick={loadPrices}
+            disabled={loading}
+            className={`font-semibold text-lg flex items-center gap-2 disabled:opacity-50 text-purple-600 dark:text-purple-400`}
+          >
+            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+            {getTranslation('common.refresh', currentLang)}
+          </button>
+        </div>
       </div>
 
       <div className={`glass-effect rounded-3xl p-6 shadow-xl ''`}>
+        {/* Profit Calculator Section */}
+        <AnimatePresence>
+          {showCalculator && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mb-6 overflow-hidden"
+            >
+              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-5 border-2 border-indigo-100 dark:border-gray-700">
+                <h4 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                  <Calculator className="text-indigo-600" />
+                  {getTranslation('profitCalculator.title', currentLang)}
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1 block">
+                      {getTranslation('market.selectCrop', currentLang)}
+                    </label>
+                    <select
+                      value={selectedCalcCrop}
+                      onChange={(e) => setSelectedCalcCrop(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="">-- Select --</option>
+                      {prices.map(p => (
+                        <option key={p.id} value={p.name}>{getCropDisplayName(p.name)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1 block">
+                        {getTranslation('profitCalculator.quantity', currentLang)}
+                      </label>
+                      <input
+                        type="number"
+                        value={calcQuantity}
+                        onChange={(e) => setCalcQuantity(Number(e.target.value))}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1 block">
+                        {getTranslation('profitCalculator.transportCost', currentLang)}
+                      </label>
+                      <input
+                        type="number"
+                        value={calcTransportCost}
+                        onChange={(e) => setCalcTransportCost(Number(e.target.value))}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {selectedCalcCrop && (
+                  <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-indigo-100 dark:border-gray-600">
+                    <h5 className="font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                      {getTranslation('profitCalculator.findBestMarket', currentLang)}
+                    </h5>
+                    <div className="space-y-3">
+                      {prices
+                        .filter(p => p.name === selectedCalcCrop)
+                        .map(p => {
+                          const netProfit = MarketService.calculateNetProfit(
+                            p.price,
+                            calcQuantity,
+                            p.distance || 10,
+                            calcTransportCost
+                          )
+                          return { ...p, netProfit }
+                        })
+                        .sort((a, b) => b.netProfit - a.netProfit)
+                        .map((market, idx) => (
+                          <div
+                            key={market.id}
+                            className={`flex items-center justify-between p-3 rounded-lg ${idx === 0
+                              ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700'
+                              : 'bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700'
+                              }`}
+                          >
+                            <div>
+                              <div className="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                                {market.market}
+                                {idx === 0 && (
+                                  <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+                                    {getTranslation('profitCalculator.winner', currentLang)}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3">
+                                <span className="flex items-center gap-1"><MapPin size={12} /> {market.distance} km</span>
+                                <span className="flex items-center gap-1"><Truck size={12} /> ₹{(market.distance || 0) * calcTransportCost}</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-indigo-600 dark:text-indigo-400">
+                                ₹{market.netProfit.toLocaleString()}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {getTranslation('profitCalculator.netProfit', currentLang)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Search Bar */}
         <div className="relative mb-4">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300" size={20} />

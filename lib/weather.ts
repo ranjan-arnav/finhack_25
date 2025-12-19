@@ -40,7 +40,7 @@ export class WeatherService {
       const response = await fetch(
         `${this.BASE_URL}/weather?q=${encodeURIComponent(location)},IN&appid=${this.API_KEY}&units=metric`
       )
-      
+
       if (!response.ok) {
         throw new Error('Location not found')
       }
@@ -126,12 +126,12 @@ export class WeatherService {
 
   private static processForecast(forecastList: any[]): WeatherData['forecast'] {
     const dailyData: { [key: string]: any[] } = {}
-    
+
     // Group by day
     forecastList.forEach((item) => {
       const date = new Date(item.dt * 1000)
       const dayKey = date.toDateString()
-      
+
       if (!dailyData[dayKey]) {
         dailyData[dayKey] = []
       }
@@ -140,7 +140,7 @@ export class WeatherService {
 
     // Take first 5 days and get midday data
     const days = Object.keys(dailyData).slice(0, 5)
-    
+
     return days.map((dayKey, index) => {
       const dayItems = dailyData[dayKey]
       // Find item closest to noon (12:00)
@@ -151,9 +151,9 @@ export class WeatherService {
       })
 
       const date = new Date(noonItem.dt * 1000)
-      const dayName = index === 0 ? 'Today' : 
-                     index === 1 ? 'Tomorrow' : 
-                     date.toLocaleDateString('en-US', { weekday: 'short' })
+      const dayName = index === 0 ? 'Today' :
+        index === 1 ? 'Tomorrow' :
+          date.toLocaleDateString('en-US', { weekday: 'short' })
 
       // Calculate min/max from all items of the day
       const temps = dayItems.map((item) => item.main.temp)
@@ -289,28 +289,28 @@ export class WeatherService {
     const advice: string[] = []
 
     if (weather.current.temp > 35) {
-      advice.push('🌡️ Very hot! Ensure adequate water for crops and livestock.')
+      advice.push('weather.advice.hot')
     }
 
     if (weather.current.humidity > 80) {
-      advice.push('💧 High humidity. Watch for fungal diseases in crops.')
+      advice.push('weather.advice.humidity')
     }
 
     if (weather.current.wind > 20) {
-      advice.push('💨 Strong winds expected. Secure loose items and support tall plants.')
+      advice.push('weather.advice.wind')
     }
 
     const hasRainForecast = weather.forecast.some((day) => day.precipitation > 50)
     if (hasRainForecast) {
-      advice.push('🌧️ Rain expected soon. Plan irrigation and spraying accordingly.')
+      advice.push('weather.advice.rain')
     }
 
     if (weather.current.uvIndex > 8) {
-      advice.push('☀️ High UV index. Take precautions when working outdoors.')
+      advice.push('weather.advice.uv')
     }
 
     if (advice.length === 0) {
-      advice.push('✅ Weather conditions are favorable for farm work.')
+      advice.push('weather.advice.good')
     }
 
     return advice

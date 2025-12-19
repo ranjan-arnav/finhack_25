@@ -9,6 +9,7 @@ export interface MarketPrice {
   market: string
   lastUpdated: Date
   priceHistory: Array<{ date: string; price: number }>
+  distance?: number // Distance from user in km
 }
 
 export class MarketService {
@@ -29,6 +30,7 @@ export class MarketService {
         { date: '2025-10-27', price: 2080 },
         { date: '2025-10-31', price: 2100 },
       ],
+      distance: 15, // km from user
     },
     {
       id: '2',
@@ -46,6 +48,7 @@ export class MarketService {
         { date: '2025-10-27', price: 3220 },
         { date: '2025-10-31', price: 3200 },
       ],
+      distance: 45,
     },
     {
       id: '3',
@@ -63,6 +66,7 @@ export class MarketService {
         { date: '2025-10-27', price: 23 },
         { date: '2025-10-31', price: 25 },
       ],
+      distance: 8,
     },
     {
       id: '4',
@@ -80,6 +84,7 @@ export class MarketService {
         { date: '2025-10-27', price: 19 },
         { date: '2025-10-31', price: 18 },
       ],
+      distance: 8,
     },
     {
       id: '5',
@@ -97,6 +102,7 @@ export class MarketService {
         { date: '2025-10-27', price: 14.8 },
         { date: '2025-10-31', price: 15 },
       ],
+      distance: 12,
     },
     {
       id: '6',
@@ -114,6 +120,7 @@ export class MarketService {
         { date: '2025-10-27', price: 5780 },
         { date: '2025-10-31', price: 5800 },
       ],
+      distance: 62,
     },
     {
       id: '7',
@@ -131,6 +138,7 @@ export class MarketService {
         { date: '2025-10-27', price: 120 },
         { date: '2025-10-31', price: 120 },
       ],
+      distance: 25,
     },
   ]
 
@@ -217,5 +225,16 @@ export class MarketService {
     } else {
       return 'marketstable'
     }
+  }
+
+  static calculateNetProfit(
+    price: number,
+    quantity: number,
+    distance: number,
+    transportCostPerKm: number
+  ): number {
+    const grossRevenue = price * quantity
+    const totalTransportCost = distance * transportCostPerKm
+    return grossRevenue - totalTransportCost
   }
 }

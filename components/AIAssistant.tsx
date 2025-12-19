@@ -118,7 +118,7 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
         sendMessage()
       }, 500)
     }
-  }, [initialMessage])
+  }, [initialMessage, currentLang, groq])
 
   useEffect(() => {
     scrollToBottom()

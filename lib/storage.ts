@@ -5,23 +5,23 @@ export const storage = {
   // User Profile
   getUser(): UserProfile | null {
     if (typeof window === 'undefined') return null
-  const data = localStorage.getItem('kisanMitraUser')
+    const data = localStorage.getItem('kisanMitraUser')
     return data ? JSON.parse(data) : null
   },
 
   setUser(user: UserProfile): void {
-  localStorage.setItem('kisanMitraUser', JSON.stringify(user))
+    localStorage.setItem('kisanMitraUser', JSON.stringify(user))
   },
 
   // Crops
   getCrops(): Crop[] {
     if (typeof window === 'undefined') return []
-  const data = localStorage.getItem('kisanMitraCrops')
+    const data = localStorage.getItem('kisanMitraCrops')
     return data ? JSON.parse(data) : []
   },
 
   setCrops(crops: Crop[]): void {
-  localStorage.setItem('kisanMitraCrops', JSON.stringify(crops))
+    localStorage.setItem('kisanMitraCrops', JSON.stringify(crops))
   },
 
   addCrop(crop: Crop): void {
@@ -47,12 +47,12 @@ export const storage = {
   // Chat History
   getChatHistory(): ChatMessage[] {
     if (typeof window === 'undefined') return []
-  const data = localStorage.getItem('kisanMitraChatHistory')
+    const data = localStorage.getItem('kisanMitraChatHistory')
     return data ? JSON.parse(data) : []
   },
 
   setChatHistory(messages: ChatMessage[]): void {
-  localStorage.setItem('kisanMitraChatHistory', JSON.stringify(messages))
+    localStorage.setItem('kisanMitraChatHistory', JSON.stringify(messages))
   },
 
   addChatMessage(message: ChatMessage): void {
@@ -66,26 +66,36 @@ export const storage = {
   },
 
   clearChatHistory(): void {
-  localStorage.setItem('kisanMitraChatHistory', JSON.stringify([]))
+    localStorage.setItem('kisanMitraChatHistory', JSON.stringify([]))
   },
 
   // Onboarding
   isOnboarded(): boolean {
     if (typeof window === 'undefined') return false
-  return localStorage.getItem('kisanMitraOnboarded') === 'true'
+    return localStorage.getItem('kisanMitraOnboarded') === 'true'
   },
 
   setOnboarded(value: boolean): void {
-  localStorage.setItem('kisanMitraOnboarded', String(value))
+    localStorage.setItem('kisanMitraOnboarded', String(value))
   },
 
   // Language
   getLanguage(): string {
     if (typeof window === 'undefined') return 'en-IN'
-  return localStorage.getItem('kisanMitraVoiceLanguage') || 'en-IN'
+    return localStorage.getItem('kisanMitraVoiceLanguage') || 'en-IN'
   },
 
   setLanguage(lang: string): void {
-  localStorage.setItem('kisanMitraVoiceLanguage', lang)
+    localStorage.setItem('kisanMitraVoiceLanguage', lang)
+  },
+
+  // AI Insight Cache
+  getAiInsight(): string | null {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('kisanMitraAiInsight')
+  },
+
+  setAiInsight(insight: string): void {
+    localStorage.setItem('kisanMitraAiInsight', insight)
   },
 }

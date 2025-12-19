@@ -32,7 +32,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import TelegramConnect from '@/components/TelegramConnect'
 import { storage } from '@/lib/storage'
 import { getTranslation, getCurrentLanguage, Language } from '@/lib/i18n'
-import { GeminiService } from '@/lib/gemini'
+import { GroqService } from '@/lib/groq'
 
 export default function Dashboard() {
   const [user, setUser] = useState({ name: 'Farmer', location: 'Your Farm', farmSize: '0' })
@@ -47,7 +47,7 @@ export default function Dashboard() {
   const [aiInsight, setAiInsight] = useState<string>('')
   const [aiInsightLoading, setAiInsightLoading] = useState(false)
   const [aiInsightError, setAiInsightError] = useState(false)
-  const gemini = useMemo(() => new GeminiService(), [])
+  const groq = useMemo(() => new GroqService(), [])
 
   useEffect(() => {
     const userData = storage.getUser()
@@ -55,7 +55,7 @@ export default function Dashboard() {
       setUser(userData)
     }
     setCurrentLang(getCurrentLanguage())
-    
+
     // Load dark mode preference
     const savedDarkMode = localStorage.getItem('darkMode') === 'true'
     setDarkMode(savedDarkMode)
@@ -80,7 +80,7 @@ export default function Dashboard() {
     window.addEventListener('languageChange', handleLanguageChange)
     window.addEventListener('openAIAssistant', handleOpenAIAssistant)
     window.addEventListener('openCropDiagnosis', handleOpenCropDiagnosis)
-    
+
     return () => {
       window.removeEventListener('languageChange', handleLanguageChange)
       window.removeEventListener('openAIAssistant', handleOpenAIAssistant)
@@ -89,8 +89,12 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    fetchAiInsight()
-  }, [currentLang])
+    // Load saved insight on mount
+    const savedInsight = storage.getAiInsight()
+    if (savedInsight) {
+      setAiInsight(savedInsight)
+    }
+  }, [])
 
   const fetchAiInsight = async () => {
     setAiInsightLoading(true)
@@ -98,7 +102,7 @@ export default function Dashboard() {
     try {
       const crops = storage.getCrops()
       const userData = storage.getUser()
-      const cropList = crops.length > 0 
+      const cropList = crops.length > 0
         ? crops.map((c) => `${c.name}${(c as any).stage ? ` (${(c as any).stage})` : ''}`).join(', ')
         : getTranslation('crops.noCrops', currentLang)
       const prompt = `Provide a concise farming tip (within 3 sentences) for an Indian farmer.
@@ -109,7 +113,7 @@ Farmer details:
 
 Tip must be practical, season-aware if possible, and include an actionable next step. Respond in ${currentLang}.`
 
-      const response = await gemini.chat([
+      const response = await groq.chat([
         {
           role: 'user',
           parts: [{ text: prompt }],
@@ -117,6 +121,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
       ], currentLang)
 
       setAiInsight(response)
+      storage.setAiInsight(response)
     } catch (error) {
       console.error('AI insight error', error)
       setAiInsightError(true)
@@ -134,7 +139,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
 
   const handleLogout = () => {
     storage.setOnboarded(false)
-  localStorage.removeItem('kisanMitraUser')
+    localStorage.removeItem('kisanMitraUser')
     window.location.href = '/'
   }
 
@@ -157,8 +162,8 @@ Tip must be practical, season-aware if possible, and include an actionable next 
           drynessScore > 65
             ? 'dashboard.irrigationPlannerDry'
             : drynessScore > 35
-            ? 'dashboard.irrigationPlannerOptimal'
-            : 'dashboard.irrigationPlannerWet'
+              ? 'dashboard.irrigationPlannerOptimal'
+              : 'dashboard.irrigationPlannerWet'
         const irrigationAmount = `${Math.max(10, Math.round(numericFarmSize * (drynessScore > 65 ? 18 : drynessScore > 35 ? 12 : 6)))} mm`
         const irrigationMessage = getTranslation(irrigationKey, currentLang).replace('{amount}', irrigationAmount)
         const irrigationFill = Math.max(20, Math.min(100, Math.round(drynessScore)))
@@ -177,13 +182,13 @@ Tip must be practical, season-aware if possible, and include an actionable next 
         const trendSeed = (dayValue + (primaryCrop ? primaryCrop.length : 3)) % 3
         const marketMessage = primaryCrop
           ? getTranslation(
-              trendSeed === 0
-                ? 'dashboard.marketPulseRising'
-                : trendSeed === 1
+            trendSeed === 0
+              ? 'dashboard.marketPulseRising'
+              : trendSeed === 1
                 ? 'dashboard.marketPulseFalling'
                 : 'dashboard.marketPulseStable',
-              currentLang
-            ).replace('{crop}', primaryCrop)
+            currentLang
+          ).replace('{crop}', primaryCrop)
           : getTranslation('dashboard.marketPulseNoCrop', currentLang)
         const marketTrendLabel = trendSeed === 0 ? '↑' : trendSeed === 1 ? '↓' : '→'
 
@@ -266,7 +271,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                   </div>
                 </div>
 
-                <div className={`rounded-2xl border border-dashed ${darkMode ? 'border-purple-500/40 bg-gray-900/40' : 'border-purple-200 bg-purple-50/60'} p-4 min-h-[120px]`}> 
+                <div className={`rounded-2xl border border-dashed ${darkMode ? 'border-purple-500/40 bg-gray-900/40' : 'border-purple-200 bg-purple-50/60'} p-4 min-h-[120px]`}>
                   {aiInsightLoading ? (
                     <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {getTranslation('dashboard.aiInsightsLoading', currentLang)}
@@ -497,7 +502,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
                 <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{user.location}</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <button
                 onClick={toggleDarkMode}
@@ -568,7 +573,7 @@ Tip must be practical, season-aware if possible, and include an actionable next 
 
       {/* AI Chat Modal */}
       {showAIChat && (
-        <AIAssistant 
+        <AIAssistant
           onClose={() => {
             setShowAIChat(false)
             setAiInitialMessage('')
@@ -689,53 +694,49 @@ Tip must be practical, season-aware if possible, and include an actionable next 
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setActiveTab('home')}
-              className={`flex flex-col items-center gap-1 py-3 rounded-2xl transition-all ${
-                activeTab === 'home'
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300'
-              }`}
+              className={`flex flex-col items-center gap-1 py-3 rounded-2xl transition-all ${activeTab === 'home'
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'text-gray-600 dark:text-gray-300'
+                }`}
             >
               <Sprout size={28} />
-              <span className="text-xs font-semibold">{getTranslation('dashboard.myCrops', currentLang)}</span>
+              <span className="text-[10px] md:text-xs font-semibold text-center leading-tight">{getTranslation('dashboard.myCrops', currentLang)}</span>
             </motion.button>
 
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setActiveTab('weather')}
-              className={`flex flex-col items-center gap-1 py-3 rounded-2xl transition-all ${
-                activeTab === 'weather'
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300'
-              }`}
+              className={`flex flex-col items-center gap-1 py-3 rounded-2xl transition-all ${activeTab === 'weather'
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'text-gray-600 dark:text-gray-300'
+                }`}
             >
               <Cloud size={28} />
-              <span className="text-xs font-semibold">{getTranslation('dashboard.weather', currentLang)}</span>
+              <span className="text-[10px] md:text-xs font-semibold text-center leading-tight">{getTranslation('dashboard.weather', currentLang)}</span>
             </motion.button>
 
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setActiveTab('market')}
-              className={`flex flex-col items-center gap-1 py-3 rounded-2xl transition-all ${
-                activeTab === 'market'
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300'
-              }`}
+              className={`flex flex-col items-center gap-1 py-3 rounded-2xl transition-all ${activeTab === 'market'
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'text-gray-600 dark:text-gray-300'
+                }`}
             >
               <TrendingUp size={28} />
-              <span className="text-xs font-semibold">{getTranslation('dashboard.market', currentLang)}</span>
+              <span className="text-[10px] md:text-xs font-semibold text-center leading-tight">{getTranslation('dashboard.market', currentLang)}</span>
             </motion.button>
 
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setActiveTab('learn')}
-              className={`flex flex-col items-center gap-1 py-3 rounded-2xl transition-all ${
-                activeTab === 'learn'
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300'
-              }`}
+              className={`flex flex-col items-center gap-1 py-3 rounded-2xl transition-all ${activeTab === 'learn'
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'text-gray-600 dark:text-gray-300'
+                }`}
             >
               <BookOpen size={28} />
-              <span className="text-xs font-semibold">Learn</span>
+              <span className="text-[10px] md:text-xs font-semibold text-center leading-tight">{getTranslation('nav.learn', currentLang)}</span>
             </motion.button>
           </div>
         </div>
