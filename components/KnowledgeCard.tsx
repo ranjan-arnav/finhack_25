@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Play, FileText, Video, ArrowRight, X, IndianRupee, TrendingUp, RefreshCw, Search, Tag, Filter } from 'lucide-react'
+import { BookOpen, Play, FileText, Video, ArrowRight, X, IndianRupee, TrendingUp, RefreshCw, Search } from 'lucide-react'
 import { getTranslation, getCurrentLanguage, type Language } from '@/lib/i18n'
 import SimpleMarkdown from './SimpleMarkdown'
 
@@ -217,6 +217,7 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
+              aria-pressed={selectedCategory === cat}
               className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${selectedCategory === cat
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -245,6 +246,7 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
                     onKeyDown={(e) => e.key === 'Enter' && setSelectedArticle(article)}
                     role="button"
                     tabIndex={0}
+                    aria-label={`${article.title}, ${article.category}`}
                     className="bg-white dark:bg-gray-800/80 rounded-2xl p-5 shadow-md border-2 border-gray-100 dark:border-gray-700 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-400 transition-all hover:-translate-y-1 group"
                   >
                     <div className="flex items-start gap-4">

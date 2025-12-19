@@ -6,6 +6,7 @@ export interface UserProfile {
   language: string
   soilType?: string
   crops?: string[]
+  role?: string
 }
 
 export interface Crop {

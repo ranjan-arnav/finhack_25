@@ -15,6 +15,11 @@ import {
   CheckCircle,
   Globe,
   BellRing,
+  Briefcase,
+  GraduationCap,
+  Tractor,
+  Wheat,
+  Leaf
 } from 'lucide-react'
 import {
   languages,
@@ -30,26 +35,32 @@ interface OnboardingFlowProps {
   onComplete: (userData?: any) => void
 }
 
-type OnboardingStep = {
-  id: string
-  title: string
-  subtitle: string
-  description: string
-  icon: ComponentType<{ size?: number | string; className?: string }>
-  color: string
-}
+type StepType = 'language' | 'role' | 'crops' | 'tour' | 'profile' | 'success'
+
+const COMMON_CROPS = [
+  { id: 'wheat', name: { en: 'Wheat', hi: 'गेहूं', ta: 'கோதுமை' }, icon: Wheat },
+  { id: 'paddy', name: { en: 'Paddy (Rice)', hi: 'धान', ta: 'நெல்' }, icon: Sprout },
+  { id: 'cotton', name: { en: 'Cotton', hi: 'कपास', ta: 'பருத்தி' }, icon: Cloud }, // Cotton looks like cloud
+  { id: 'sugarcane', name: { en: 'Sugarcane', hi: 'गन्ना', ta: 'கரும்பு' }, icon: Sprout },
+  { id: 'tomato', name: { en: 'Tomato', hi: 'टमाटर', ta: 'தக்காளி' }, icon: Leaf },
+  { id: 'potato', name: { en: 'Potato', hi: 'आलू', ta: 'உருளைக்கிழங்கு' }, icon: Leaf },
+  { id: 'onion', name: { en: 'Onion', hi: 'प्याज', ta: 'வெங்காயம்' }, icon: Leaf },
+]
 
 export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
-  const [currentStep, setCurrentStep] = useState(-1)
+  const [step, setStep] = useState<StepType>('language')
+  const [tourIndex, setTourIndex] = useState(0)
   const [currentLanguage, setCurrentLang] = useState<Language>('en')
+
   const [formData, setFormData] = useState({
+    role: '',
+    selectedCrops: [] as string[],
     name: '',
     location: '',
     farmSize: '',
   })
-  const [showForm, setShowForm] = useState(false)
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  const [requestingNotifications, setRequestingNotifications] = useState(false)
 
   useEffect(() => {
     const savedLang = getCurrentLanguage()
@@ -58,438 +69,274 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     const storedUser = storage.getUser()
     if (storedUser) {
       setFormData({
+        role: storedUser.role || '',
+        selectedCrops: storedUser.crops || [],
         name: storedUser.name || '',
         location: storedUser.location || '',
         farmSize: storedUser.farmSize || '',
       })
     }
-
-    if (typeof window !== 'undefined' && typeof window.Notification !== 'undefined') {
-      setNotificationsEnabled(window.Notification.permission === 'granted')
-    }
   }, [])
-
-  const onboardingSteps: OnboardingStep[] = useMemo(
-    () => [
-      {
-        id: 'weather',
-        title: getTranslation('onboarding.slides.weatherTitle', currentLanguage),
-        subtitle: getTranslation('onboarding.slides.weatherSubtitle', currentLanguage),
-        description: getTranslation('onboarding.slides.weatherDescription', currentLanguage),
-        icon: Cloud,
-        color: 'from-blue-400 to-cyan-500',
-      },
-      {
-        id: 'crops',
-        title: getTranslation('onboarding.slides.cropTitle', currentLanguage),
-        subtitle: getTranslation('onboarding.slides.cropSubtitle', currentLanguage),
-        description: getTranslation('onboarding.slides.cropDescription', currentLanguage),
-        icon: Sprout,
-        color: 'from-green-400 to-emerald-500',
-      },
-      {
-        id: 'market',
-        title: getTranslation('onboarding.slides.marketTitle', currentLanguage),
-        subtitle: getTranslation('onboarding.slides.marketSubtitle', currentLanguage),
-        description: getTranslation('onboarding.slides.marketDescription', currentLanguage),
-        icon: TrendingUp,
-        color: 'from-purple-400 to-pink-500',
-      },
-      {
-        id: 'ai',
-        title: getTranslation('onboarding.slides.aiTitle', currentLanguage),
-        subtitle: getTranslation('onboarding.slides.aiSubtitle', currentLanguage),
-        description: getTranslation('onboarding.slides.aiDescription', currentLanguage),
-        icon: Smartphone,
-        color: 'from-indigo-400 to-purple-500',
-      },
-    ],
-    [currentLanguage]
-  )
 
   const handleLanguageSelect = (lang: Language) => {
     setCurrentLang(lang)
     setAppLanguage(lang)
-    setCurrentStep(0)
+    setStep('role')
   }
 
-  const handleNext = () => {
-    setCurrentStep((prev) => {
-      if (prev < onboardingSteps.length - 1) {
-        return prev + 1
-      }
-      setShowForm(true)
-      return prev
+  const handleRoleSelect = (role: string) => {
+    setFormData(prev => ({ ...prev, role }))
+    setStep('crops')
+  }
+
+  const toggleCrop = (cropId: string) => {
+    setFormData(prev => {
+      const crops = prev.selectedCrops.includes(cropId)
+        ? prev.selectedCrops.filter(c => c !== cropId)
+        : [...prev.selectedCrops, cropId]
+      return { ...prev, selectedCrops: crops }
     })
   }
 
-  const handleSkip = () => {
-    storage.setOnboarded(true)
-    onComplete()
+  const nextTourSlide = () => {
+    if (tourIndex < 2) { // 3 slides (0-2)
+      setTourIndex(prev => prev + 1)
+    } else {
+      setStep('profile')
+    }
   }
 
-  const handleSubmit = () => {
-    const profile = {
+  const handleFinish = () => {
+    storage.setUser({
       ...formData,
       language: currentLanguage,
-    }
-    storage.setUser(profile)
+      crops: formData.selectedCrops
+    })
     storage.setOnboarded(true)
-    onComplete(profile)
+
+    // We will trigger confetti in the Success component via useEffect
+    setStep('success')
+
+    setTimeout(() => {
+      onComplete(formData)
+    }, 2000)
   }
 
-  const handleEnableNotifications = async () => {
-    if (notificationsEnabled || requestingNotifications) return
-    setRequestingNotifications(true)
-    try {
-      const granted = await NotificationService.requestPermission()
-      setNotificationsEnabled(granted)
-    } catch (error) {
-      console.error('Notification permission failed', error)
-      setNotificationsEnabled(false)
-    } finally {
-      setRequestingNotifications(false)
-    }
-  }
+  // --- Render Steps ---
 
-  const currentSlide = onboardingSteps[Math.max(currentStep, 0)]
-  const IconComponent = currentSlide?.icon || Cloud
-
-  const renderLanguageSelection = () => (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden relative">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+  const renderLanguage = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }}
+      className="max-w-4xl w-full mx-auto p-6"
+    >
+      <div className="text-center mb-10">
         <motion.div
-          className="absolute top-10 left-10 text-green-200 opacity-30"
-          animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="w-20 h-20 mx-auto mb-6 bg-gradient-to-tr from-green-400 to-blue-500 rounded-full flex items-center justify-center"
         >
-          <Sprout size={60} />
+          <Globe className="text-white w-10 h-10" />
         </motion.div>
-        <motion.div
-          className="absolute top-20 right-20 text-blue-200 opacity-30"
-          animate={{ y: [0, 20, 0], x: [0, -10, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <Globe size={50} />
-        </motion.div>
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-blue-600 mb-2">
+          {getTranslation('onboarding.selectLanguage', currentLanguage)}
+        </h1>
+        <p className="text-gray-500">{getTranslation('onboarding.languageDescription', currentLanguage)}</p>
       </div>
 
-      <div className="w-full max-w-3xl z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-effect rounded-3xl p-8 md:p-10 shadow-2xl"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200 }}
-            className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg"
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {languages.map(lang => (
+          <motion.button
+            key={lang.code}
+            onClick={() => handleLanguageSelect(lang.code)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${currentLanguage === lang.code
+              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+              : 'border-transparent bg-white dark:bg-gray-800 shadow-sm hover:shadow-md'
+              }`}
           >
-            <Globe size={48} className="text-white" />
-          </motion.div>
-
-          <h1 className="text-3xl md:text-4xl font-bold text-center mb-3 text-gray-800 dark:text-gray-100">
-            {getTranslation('onboarding.selectLanguage', currentLanguage)}
-          </h1>
-          <p className="text-center text-gray-600 dark:text-gray-300 mb-8 text-lg">
-            {getTranslation('onboarding.languageDescription', currentLanguage)}
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {languages.map((lang, index) => {
-              const active = currentLanguage === lang.code
-              return (
-                <motion.button
-                  key={lang.code}
-                  onClick={() => handleLanguageSelect(lang.code)}
-                  className={`glass-effect p-4 rounded-2xl transition-all text-left group border-2 ${
-                    active ? 'border-green-500 bg-green-50 dark:bg-green-900/30' : 'border-transparent'
-                  }`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-pressed={active}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl" aria-hidden>
-                      {lang.flag}
-                    </span>
-                    <div>
-                      <div className={`font-bold text-gray-800 dark:text-gray-100 group-hover:text-green-600 transition-colors ${active ? 'text-green-600' : ''}`}>
-                        {lang.nativeName}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-300">{lang.name}</div>
-                    </div>
-                  </div>
-                </motion.button>
-              )
-            })}
-          </div>
-        </motion.div>
+            <span className="text-3xl">{lang.flag}</span>
+            <span className="font-medium text-gray-800 dark:text-gray-200">{lang.nativeName}</span>
+            <span className="text-xs text-gray-400">{lang.name}</span>
+          </motion.button>
+        ))}
       </div>
+    </motion.div>
+  )
+
+  const renderRole = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
+      className="max-w-2xl w-full mx-auto p-6"
+    >
+      <div className="text-center mb-10">
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+          {getTranslation('onboarding.roles.title', currentLanguage)}
+        </h2>
+        <p className="text-gray-500">{getTranslation('onboarding.roles.subtitle', currentLanguage)}</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { id: 'farmer', icon: Tractor, label: getTranslation('onboarding.roles.farmer', currentLanguage) },
+          { id: 'trader', icon: Briefcase, label: getTranslation('onboarding.roles.trader', currentLanguage) },
+          { id: 'student', icon: GraduationCap, label: getTranslation('onboarding.roles.student', currentLanguage) },
+        ].map(role => (
+          <motion.button
+            key={role.id}
+            onClick={() => handleRoleSelect(role.id)}
+            whileHover={{ y: -5 }}
+            className={`p-6 rounded-3xl border-2 transition-all text-center group ${formData.role === role.id
+              ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg'
+              : 'border-transparent bg-white dark:bg-gray-800 shadow-md hover:shadow-xl'
+              }`}
+          >
+            <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-white ${formData.role === role.id ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+              }`}>
+              <role.icon size={32} />
+            </div>
+            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">{role.label}</h3>
+          </motion.button>
+        ))}
+      </div>
+    </motion.div>
+  )
+
+  const renderCrops = () => (
+    <motion.div className="max-w-2xl w-full mx-auto p-6">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold mb-2">{getTranslation('onboarding.selectCrops.title', currentLanguage)}</h2>
+        <p className="text-gray-500">{getTranslation('onboarding.selectCrops.subtitle', currentLanguage)}</p>
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-3 mb-8">
+        {COMMON_CROPS.map(crop => {
+          const isSelected = formData.selectedCrops.includes(crop.id)
+          // Rough translation fallback
+          const name = (crop.name as any)[currentLanguage] || crop.name.en
+
+          return (
+            <motion.button
+              key={crop.id}
+              onClick={() => toggleCrop(crop.id)}
+              whileTap={{ scale: 0.9 }}
+              className={`px-4 py-2 rounded-full flex items-center gap-2 border transition-all ${isSelected
+                ? 'bg-green-600 text-white border-green-600 shadow-md'
+                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-green-400'
+                }`}
+            >
+              <crop.icon size={16} />
+              <span>{name}</span>
+              {isSelected && <CheckCircle size={14} />}
+            </motion.button>
+          )
+        })}
+      </div>
+
+      <button
+        onClick={() => setStep('tour')}
+        className="btn-primary w-full py-4 text-lg rounded-xl shadow-lg"
+      >
+        {getTranslation('onboarding.next', currentLanguage)}
+      </button>
+    </motion.div>
+  )
+
+  // Reusing existing tour content but simplified
+  const renderTour = () => {
+    // ... Define slides array similar to original but maybe simpler ...
+    const slides = [
+      { id: 'weather', icon: Cloud, title: getTranslation('onboarding.slides.weatherTitle', currentLanguage), desc: getTranslation('onboarding.slides.weatherDescription', currentLanguage), color: 'from-blue-400 to-cyan-500' },
+      { id: 'market', icon: TrendingUp, title: getTranslation('onboarding.slides.marketTitle', currentLanguage), desc: getTranslation('onboarding.slides.marketDescription', currentLanguage), color: 'from-purple-400 to-pink-500' },
+      { id: 'ai', icon: Smartphone, title: getTranslation('onboarding.slides.aiTitle', currentLanguage), desc: getTranslation('onboarding.slides.aiDescription', currentLanguage), color: 'from-indigo-400 to-purple-500' },
+    ]
+    const currentSlide = slides[tourIndex]
+    const Icon = currentSlide.icon
+
+    return (
+      <motion.div
+        key={tourIndex}
+        initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }}
+        className="max-w-md w-full mx-auto p-8 rounded-3xl glass-effect shadow-2xl text-center"
+      >
+        <div className={`w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br ${currentSlide.color} flex items-center justify-center shadow-lg`}>
+          <Icon size={48} className="text-white" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">{currentSlide.title}</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-8">{currentSlide.desc}</p>
+
+        <div className="flex justify-center gap-2 mb-8">
+          {slides.map((_, i) => (
+            <div key={i} className={`h-2 rounded-full transition-all ${i === tourIndex ? 'w-8 bg-green-500' : 'w-2 bg-gray-300'}`} />
+          ))}
+        </div>
+
+        <button onClick={nextTourSlide} className="btn-primary w-full py-4 rounded-xl">
+          {tourIndex < slides.length - 1 ? getTranslation('onboarding.next', currentLanguage) : getTranslation('onboarding.getStarted', currentLanguage)}
+        </button>
+      </motion.div>
+    )
+  }
+
+  const renderProfile = () => (
+    <motion.div className="max-w-md w-full mx-auto p-6 glass-effect rounded-3xl shadow-xl">
+      <div className="text-center mb-6">
+        <User size={48} className="mx-auto text-green-600 mb-2" />
+        <h2 className="text-2xl font-bold">{getTranslation('onboarding.form.title', currentLanguage)}</h2>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        <input
+          value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
+          placeholder={getTranslation('onboarding.form.namePlaceholder', currentLanguage)}
+          className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50"
+        />
+        <input
+          value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
+          placeholder={getTranslation('onboarding.form.locationPlaceholder', currentLanguage)}
+          className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50"
+        />
+      </div>
+
+      <button
+        onClick={handleFinish}
+        disabled={!formData.name}
+        className="btn-primary w-full py-4 rounded-xl font-bold text-lg shadow-lg disabled:opacity-50"
+      >
+        {getTranslation('onboarding.finish', currentLanguage)}
+      </button>
+    </motion.div>
+  )
+
+  const renderSuccess = () => (
+    <div className="flex flex-col items-center justify-center h-full">
+      <motion.div
+        initial={{ scale: 0 }} animate={{ scale: 1 }}
+        className="w-32 h-32 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-2xl"
+      >
+        <CheckCircle size={64} className="text-white" />
+      </motion.div>
+      <h2 className="text-3xl font-bold text-gray-800 dark:text-white">All Set!</h2>
+      <p className="text-gray-500 mt-2">Redirecting to dashboard...</p>
     </div>
   )
 
-  const renderStepContent = () => (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden relative">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-10 left-10 text-green-200 opacity-30"
-          animate={{
-            y: [0, -20, 0],
-            rotate: [0, 10, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        >
-          <Sprout size={60} />
-        </motion.div>
-        <motion.div
-          className="absolute top-20 right-20 text-blue-200 opacity-30"
-          animate={{
-            y: [0, 20, 0],
-            x: [0, -10, 0],
-          }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        >
-          <Droplets size={50} />
-        </motion.div>
-        <motion.div
-          className="absolute bottom-20 left-16 text-yellow-200 opacity-30"
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        >
-          <Sun size={70} />
-        </motion.div>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-4 overflow-hidden relative">
+      {/* Background Elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 5, repeat: Infinity }} className="absolute top-10 left-10 text-green-200/50"><Sprout size={100} /></motion.div>
+        <motion.div animate={{ y: [0, 20, 0] }} transition={{ duration: 7, repeat: Infinity }} className="absolute bottom-20 right-10 text-blue-200/50"><Cloud size={120} /></motion.div>
       </div>
 
-      <div className="w-full max-w-xl z-10">
-        <AnimatePresence mode="wait">
-          {!showForm ? (
-            <motion.div
-              key={currentSlide?.id}
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              transition={{ duration: 0.35 }}
-              className="glass-effect rounded-3xl p-8 md:p-10 shadow-2xl"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                className={`w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br ${currentSlide?.color} flex items-center justify-center shadow-lg`}
-              >
-                <IconComponent size={48} className="text-white" />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-center mb-8"
-              >
-                <div className="text-sm text-tertiary mb-2">
-                  {currentStep + 1}/{onboardingSteps.length}
-                </div>
-                <h1 className="text-3xl font-bold mb-2 text-gray-800">
-                  {currentSlide?.title}
-                </h1>
-                <p className="text-xl text-green-600 font-semibold mb-4">
-                  {currentSlide?.subtitle}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
-                  {currentSlide?.description}
-                </p>
-              </motion.div>
-
-              <div className="flex justify-center gap-2 mb-8">
-                {onboardingSteps.map((step, index) => (
-                  <motion.div
-                    key={step.id}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      index === currentStep ? 'w-8 bg-green-600' : 'w-2 bg-gray-300'
-                    }`}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.35 + index * 0.08 }}
-                  />
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                <motion.button
-                  onClick={handleNext}
-                  className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3"
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  {currentStep < onboardingSteps.length - 1
-                    ? getTranslation('onboarding.next', currentLanguage)
-                    : getTranslation('onboarding.getStarted', currentLanguage)}
-                  <ChevronRight size={26} />
-                </motion.button>
-
-                <motion.button
-                  onClick={handleSkip}
-                  className="w-full py-4 text-lg text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.45 }}
-                >
-                  {getTranslation('onboarding.skip', currentLanguage)}
-                </motion.button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="form"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              className="glass-effect rounded-3xl p-8 md:p-10 shadow-2xl space-y-8"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-                className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg"
-              >
-                <User size={48} className="text-white" />
-              </motion.div>
-
-              <div className="text-center">
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                  {getTranslation('onboarding.form.title', currentLanguage)}
-                </h2>
-                <p className="text-lg text-gray-600 dark:text-gray-300">
-                  {getTranslation('onboarding.form.subtitle', currentLanguage)}
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-lg font-semibold text-gray-700 mb-3">
-                    <User className="inline mr-2" size={22} />
-                    {getTranslation('onboarding.form.nameLabel', currentLanguage)}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder={getTranslation('onboarding.form.namePlaceholder', currentLanguage)}
-                    className="w-full px-5 py-4 text-lg border-2 border-gray-300 rounded-2xl focus:border-green-500 focus:outline-none transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-lg font-semibold text-gray-700 mb-3">
-                    <MapPin className="inline mr-2" size={22} />
-                    {getTranslation('onboarding.form.locationLabel', currentLanguage)}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder={getTranslation('onboarding.form.locationPlaceholder', currentLanguage)}
-                    className="w-full px-5 py-4 text-lg border-2 border-gray-300 rounded-2xl focus:border-green-500 focus:outline-none transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-lg font-semibold text-gray-700 mb-3">
-                    <Sprout className="inline mr-2" size={22} />
-                    {getTranslation('onboarding.form.sizeLabel', currentLanguage)}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.farmSize}
-                    onChange={(e) => setFormData({ ...formData, farmSize: e.target.value })}
-                    placeholder={getTranslation('onboarding.form.sizePlaceholder', currentLanguage)}
-                    className="w-full px-5 py-4 text-lg border-2 border-gray-300 rounded-2xl focus:border-green-500 focus:outline-none transition-colors"
-                  />
-                  <p className="text-sm text-gray-500 dark:text-gray-300 mt-2">
-                    {getTranslation('onboarding.form.helpText', currentLanguage)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="glass-effect border border-green-200 dark:border-green-700 rounded-2xl p-5">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-                    <BellRing size={24} className="text-green-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-primary">
-                      {getTranslation('onboarding.notifications.title', currentLanguage)}
-                    </h3>
-                    <p className="text-sm text-secondary mb-3">
-                      {getTranslation('onboarding.notifications.subtitle', currentLanguage)}
-                    </p>
-                    <button
-                      onClick={handleEnableNotifications}
-                      disabled={notificationsEnabled || requestingNotifications}
-                      className={`btn-secondary w-full sm:w-auto px-5 py-3 flex items-center justify-center gap-2 ${
-                        notificationsEnabled ? 'bg-green-600 text-white hover:bg-green-600' : ''
-                      }`}
-                    >
-                      {notificationsEnabled ? (
-                        <>
-                          <CheckCircle size={20} />
-                          {getTranslation('onboarding.notifications.enableButton', currentLanguage)}
-                        </>
-                      ) : (
-                        <>
-                          {requestingNotifications && <span className="animate-pulse">•</span>}
-                          {getTranslation('onboarding.notifications.enableButton', currentLanguage)}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <motion.button
-                onClick={handleSubmit}
-                className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3"
-                whileTap={{ scale: 0.95 }}
-                disabled={!formData.name || !formData.location}
-              >
-                <CheckCircle size={26} />
-                {getTranslation('onboarding.finish', currentLanguage)}
-              </motion.button>
-
-              <button
-                onClick={handleSkip}
-                className="w-full py-4 text-lg text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-              >
-                {getTranslation('onboarding.skip', currentLanguage)}
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <AnimatePresence mode='wait'>
+        {step === 'language' && renderLanguage()}
+        {step === 'role' && renderRole()}
+        {step === 'crops' && renderCrops()}
+        {step === 'tour' && renderTour()}
+        {step === 'profile' && renderProfile()}
+        {step === 'success' && renderSuccess()}
+      </AnimatePresence>
     </div>
   )
-
-  return currentStep === -1 ? renderLanguageSelection() : renderStepContent()
 }
+
