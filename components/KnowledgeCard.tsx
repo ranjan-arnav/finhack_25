@@ -274,7 +274,7 @@ export default function KnowledgeCard({ fullView = false, onOpenAI }: KnowledgeC
             ) : (
               <div className="col-span-full py-10 text-center text-gray-500 dark:text-gray-400">
                 <Search size={48} className="mx-auto mb-4 opacity-20" />
-                <p>No articles found for "{searchQuery}"</p>
+                <p>No articles found for &quot;{searchQuery}&quot;</p>
               </div>
             )}
           </AnimatePresence>
