@@ -15,11 +15,17 @@ export class GroqService {
     }
 
     // Helper to adapt Gemini-style messages
-    private adaptMessages(messages: { role: string; parts: { text: string }[] }[], language: string): ChatMessage[] {
+    private adaptMessages(messages: { role: string; parts: { text: string }[] }[], language: string, location?: string): ChatMessage[] {
+        let systemContent = `You are Kisan Mitra (किसान मित्र), an AI farming assistant for Indian farmers. Help with agriculture, crops, weather, and market prices. Respond in ${language} language with practical farming advice.`
+
+        if (location) {
+            systemContent += ` The farmer is located in ${location}. Provide advice relevant to this region's soil, climate, and farming practices.`
+        }
+
         return [
             {
                 role: 'system',
-                content: `You are Kisan Mitra (किसान मित्र), an AI farming assistant for Indian farmers. Help with agriculture, crops, weather, and market prices. Respond in ${language} language with practical farming advice.`
+                content: systemContent
             },
             ...messages.map(msg => ({
                 role: (msg.role === 'model' ? 'assistant' : 'user') as 'assistant' | 'user',
@@ -28,12 +34,12 @@ export class GroqService {
         ]
     }
 
-    async chat(messages: { role: string; parts: { text: string }[] }[], language: string = 'en'): Promise<string> {
+    async chat(messages: { role: string; parts: { text: string }[] }[], language: string = 'en', location?: string): Promise<string> {
         if (!this.apiKey) {
             return 'Please configure your Groq API key in .env.local file.'
         }
 
-        const groqMessages = this.adaptMessages(messages, language)
+        const groqMessages = this.adaptMessages(messages, language, location)
 
         try {
             console.log('*** USING GROQ MODEL:', this.textModel, '***')
@@ -70,12 +76,12 @@ export class GroqService {
         }
     }
 
-    async analyzeCropImage(imageBase64: string, question: string): Promise<string> {
+    async analyzeCropImage(imageBase64: string, question: string, language: string = 'en', location?: string): Promise<string> {
         if (!this.apiKey) {
             return 'Please configure your Groq API key in .env.local file.'
         }
 
-        const systemPrompt = `You are an expert agricultural pathologist and crop advisor for Indian farmers. 
+        let systemPrompt = `You are an expert agricultural pathologist and crop advisor for Indian farmers. 
     
 Analyze this crop/plant image and provide:
 1. Crop identification (if visible)
@@ -87,6 +93,12 @@ Analyze this crop/plant image and provide:
 ONLY discuss agriculture. If the image is not related to farming/crops, say: "This doesn't appear to be a crop or plant. Please upload an image of your crop or plant for diagnosis."
 
 Be practical and specific for Indian farming conditions.`
+
+        systemPrompt += `\n\nIMPORTANT: Respond in ${language} language.`
+
+        if (location) {
+            systemPrompt += `\nContext: The farm is located in ${location}. Consider local conditions.`
+        }
 
         try {
             console.log('*** USING GROQ VISION MODEL:', this.visionModel, '***')

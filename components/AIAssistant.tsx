@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, Mic, MicOff, Loader2, MessageCircle } from 'lucide-react'
-import { GeminiService } from '@/lib/gemini'
+import { GroqService } from '@/lib/groq'
 import { storage } from '@/lib/storage'
 import { TranslationService } from '@/lib/translation'
 import { getCurrentLanguage, getTranslation, type Language } from '@/lib/i18n'
@@ -23,14 +23,14 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
   const [currentLang, setCurrentLang] = useState<Language>('en')
   const [selectedLanguage, setSelectedLanguage] = useState('en-IN')
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const gemini = useMemo(() => new GeminiService(), [])
+  const groq = useMemo(() => new GroqService(), [])
   const hasProcessedInitialMessage = useRef(false)
 
   useEffect(() => {
     // Get current app language
     const appLang = getCurrentLanguage()
     setCurrentLang(appLang)
-    
+
     // Get or set voice language based on app language
     const savedLang = storage.getLanguage()
     if (savedLang) {
@@ -40,18 +40,18 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
       setSelectedLanguage(voiceLang)
       storage.setLanguage(voiceLang)
     }
-    
+
     // Listen for language changes
     const handleLanguageChange = () => {
       const newLang = getCurrentLanguage()
       setCurrentLang(newLang)
-      
+
       // Sync voice language with app language
       const newVoiceLang = `${newLang}-IN`
       setSelectedLanguage(newVoiceLang)
       storage.setLanguage(newVoiceLang)
     }
-    
+
     window.addEventListener('languageChange', handleLanguageChange)
     return () => window.removeEventListener('languageChange', handleLanguageChange)
   }, [])
@@ -61,14 +61,14 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
     const history = storage.getChatHistory()
     const userData = storage.getUser()
     const crops = storage.getCrops()
-    
+
     if (history.length > 0) {
       setMessages(history)
     } else {
       // Welcome message in user's language
       const welcomeText = getTranslation('ai.welcomeMessage', currentLang)
       const helpText = getTranslation('ai.canHelpWith', currentLang)
-      
+
       const welcomeMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
@@ -97,10 +97,10 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
             }
             setMessages((prev) => [...prev, message])
             setIsLoading(true)
-            
+
             try {
               const geminiMessages: any[] = [{ role: 'user', parts: [{ text: initialMessage }] }]
-              const response = await gemini.chat(geminiMessages, currentLang)
+              const response = await groq.chat(geminiMessages, currentLang)
               const assistantMessage: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
@@ -148,7 +148,7 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
       // Get all user context
       const userData = storage.getUser()
       const crops = storage.getCrops()
-      
+
       // Build context for Gemini
       let contextPrompt = textToSend
       if (userData || crops.length > 0) {
@@ -176,7 +176,7 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
       })
 
       // Get response directly in user's language
-      const response = await gemini.chat(geminiMessages, currentLang)
+      const response = await groq.chat(geminiMessages, currentLang, userData?.location)
       const translatedResponse = response
 
       const assistantMessage: ChatMessage = {
@@ -200,7 +200,7 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
     } finally {
       setIsLoading(false)
     }
-  }, [input, isLoading, messages, currentLang, gemini])
+  }, [input, isLoading, messages, currentLang, groq])
 
   const handleSend = () => handleSendMessage()
 
@@ -212,7 +212,7 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     const recognition = new SpeechRecognition()
-    
+
     // Use selected voice language for recognition
     recognition.lang = selectedLanguage
     recognition.continuous = false
@@ -266,9 +266,9 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
           const parts = line.split(/(\*\*.*?\*\*)/)
           return (
             <div key={i} className="my-1">
-              {parts.map((part, j) => 
-                part.startsWith('**') ? 
-                  <strong key={j}>{part.replace(/\*\*/g, '')}</strong> : 
+              {parts.map((part, j) =>
+                part.startsWith('**') ?
+                  <strong key={j}>{part.replace(/\*\*/g, '')}</strong> :
                   part
               )}
             </div>
@@ -328,17 +328,15 @@ export default function AIAssistant({ onClose, initialMessage, darkMode = false 
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] p-4 rounded-2xl ${
-                    message.role === 'user'
-                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-br-sm'
-                      : 'glass-effect text-primary rounded-bl-sm shadow-md'
-                  }`}
+                  className={`max-w-[80%] p-4 rounded-2xl ${message.role === 'user'
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-br-sm'
+                    : 'glass-effect text-primary rounded-bl-sm shadow-md'
+                    }`}
                 >
                   <div className="text-base leading-relaxed">{formatMessage(message.content)}</div>
                   <p
-                    className={`text-xs mt-2 ${
-                      message.role === 'user' ? 'text-green-100' : 'text-tertiary'
-                    }`}
+                    className={`text-xs mt-2 ${message.role === 'user' ? 'text-green-100' : 'text-tertiary'
+                      }`}
                   >
                     {new Date(message.timestamp).toLocaleTimeString()}
                   </p>

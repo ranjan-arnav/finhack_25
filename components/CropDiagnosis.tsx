@@ -3,24 +3,40 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Upload, Loader2, AlertCircle, CheckCircle, Sparkles } from 'lucide-react'
-import { GeminiService } from '@/lib/gemini'
+import { GroqService } from '@/lib/groq'
+import { storage } from '@/lib/storage'
 import { getTranslation, getCurrentLanguage, type Language } from '@/lib/i18n'
+
+interface DiagnosisResult {
+  crop_name: string;
+  health_status: 'Healthy' | 'Diseased';
+  disease_name: string;
+  symptoms: string[];
+  treatment: {
+    organic: string[];
+    chemical: string[];
+    cultural: string[];
+  };
+  prevention: string[];
+  urgency: 'Low' | 'Medium' | 'High';
+}
 
 export default function CropDiagnosis() {
   const [image, setImage] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [result, setResult] = useState<string | null>(null)
+  const [result, setResult] = useState<DiagnosisResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [currentLang, setCurrentLang] = useState<Language>('en')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const gemini = new GeminiService()
+  const groq = new GroqService()
 
   useEffect(() => {
     setCurrentLang(getCurrentLanguage())
-    
+
     const handleLanguageChange = () => {
       setCurrentLang(getCurrentLanguage())
     }
-    
+
     window.addEventListener('languageChange', handleLanguageChange)
     return () => window.removeEventListener('languageChange', handleLanguageChange)
   }, [])
@@ -42,6 +58,7 @@ export default function CropDiagnosis() {
 
     setIsAnalyzing(true)
     setResult(null)
+    setError(null)
 
     try {
       const base64Image = image.split(',')[1]
@@ -60,11 +77,29 @@ export default function CropDiagnosis() {
 
 Be specific and practical. Format your response clearly with headings.`
 
-      const response = await gemini.analyzeCropImage(base64Image, prompt)
-      setResult(response)
+      const user = storage.getUser()
+      const location = user?.location
+
+      const response = await groq.analyzeCropImage(base64Image, prompt, currentLang, location)
+      console.log('Raw Groq Response:', response)
+
+      let parsedResult: DiagnosisResult
+
+      try {
+        // Try parsing as JSON first
+        const cleanResponse = response.replace(/```json/g, '').replace(/```/g, '').trim()
+        parsedResult = JSON.parse(cleanResponse)
+      } catch (e) {
+        console.log('JSON parse failed, attempting text parsing...', e)
+        // Fallback: Parse the Markdown text response
+        parsedResult = parseMarkdownResponse(response)
+      }
+
+      setResult(parsedResult)
     } catch (error) {
       console.error('Analysis error:', error)
-      setResult('Failed to analyze image. Please try again with a clearer photo.')
+      setError('Failed to analyze image. Please try again with a clearer photo.')
+      setResult(null)
     } finally {
       setIsAnalyzing(false)
     }
@@ -167,26 +202,89 @@ Be specific and practical. Format your response clearly with headings.`
               </div>
             )}
 
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl relative flex items-center gap-3">
+                <AlertCircle size={20} />
+                <span>{error}</span>
+              </div>
+            )}
+
             {result && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
               >
-                <div className="flex items-center gap-3 text-green-600 font-bold text-xl">
+                <div className="flex items-center gap-3 text-green-600 font-bold text-xl mb-4">
                   <CheckCircle size={28} />
                   {getTranslation('diagnosis.analysisComplete', currentLang)}
                 </div>
 
-                <div className="bg-white rounded-2xl p-6 border-2 border-gray-200">
-                  <div className="prose prose-sm max-w-none">
-                    <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                      {result}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                    <h3 className="font-semibold text-green-800 mb-1">Crop</h3>
+                    <p className="text-xl font-bold text-green-900">{result.crop_name}</p>
+                  </div>
+
+                  <div className={`p-4 rounded-2xl border ${result.health_status === 'Diseased' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                    <h3 className={`font-semibold mb-1 ${result.health_status === 'Diseased' ? 'text-red-800' : 'text-green-800'}`}>Health Status</h3>
+                    <p className={`text-xl font-bold ${result.health_status === 'Diseased' ? 'text-red-900' : 'text-green-900'}`}>{result.health_status}</p>
+                  </div>
+
+                  {result.health_status === 'Diseased' && (
+                    <div className="col-span-1 md:col-span-2 bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                      <h3 className="font-semibold text-orange-800 mb-1">Diagnosis</h3>
+                      <p className="text-lg font-bold text-orange-900">{result.disease_name}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-500">Urgency:</span>
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${result.urgency === 'High' ? 'bg-red-200 text-red-800' :
+                          result.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-800' :
+                            'bg-green-200 text-green-800'
+                          }`}>
+                          {result.urgency}
+                        </span>
+                      </div>
                     </div>
+                  )}
+
+                  <div className="col-span-1 md:col-span-2 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                      <AlertCircle size={18} /> Symptoms
+                    </h3>
+                    <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                      {result.symptoms.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </div>
+
+                  {result.health_status === 'Diseased' && (
+                    <div className="col-span-1 md:col-span-2 space-y-4">
+                      <h3 className="font-semibold text-gray-900 text-lg">Recommended Treatment</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                          <h4 className="font-semibold text-blue-800 mb-2">Organic</h4>
+                          <ul className="list-disc pl-4 text-sm text-blue-900 space-y-1">
+                            {result.treatment.organic.map((t, i) => <li key={i}>{t}</li>)}
+                          </ul>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                          <h4 className="font-semibold text-purple-800 mb-2">Chemical</h4>
+                          <ul className="list-disc pl-4 text-sm text-purple-900 space-y-1">
+                            {result.treatment.chemical.map((t, i) => <li key={i}>{t}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="col-span-1 md:col-span-2 bg-teal-50 p-5 rounded-2xl border border-teal-100">
+                    <h3 className="font-semibold text-teal-800 mb-2">Prevention</h3>
+                    <ul className="list-disc pl-5 text-teal-900 space-y-1">
+                      {result.prevention.map((p, i) => <li key={i}>{p}</li>)}
+                    </ul>
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 mt-6">
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
@@ -202,7 +300,7 @@ Be specific and practical. Format your response clearly with headings.`
                     onClick={() => {
                       navigator.share?.({
                         title: 'Crop Diagnosis Report',
-                        text: result,
+                        text: `Diagnosis: ${result.disease_name}\nHealth: ${result.health_status}`,
                       })
                     }}
                     className="flex-1 btn-primary py-5 text-lg"
@@ -230,4 +328,48 @@ Be specific and practical. Format your response clearly with headings.`
       </div>
     </motion.div>
   )
+}
+
+function parseMarkdownResponse(text: string): DiagnosisResult {
+  const extractSection = (header: string): string => {
+    const regex = new RegExp(`## \\*\\*${header}\\*\\*[\\s\\S]*?([\\s\\S]*?)(?=\\n##|$)`, 'i')
+    const match = text.match(regex)
+    return match ? match[1].trim() : ''
+  }
+
+  const extractList = (header: string): string[] => {
+    const section = extractSection(header)
+    return section
+      .split('\n')
+      .map(line => line.replace(/^\d+\.\s*|-\s*/, '').trim())
+      .filter(line => line.length > 0)
+  }
+
+  const treatmentSection = extractSection('Treatment')
+
+  // Helper to extract subsections from treatment
+  const extractTreatment = (subHeader: string): string[] => {
+    const regex = new RegExp(`### \\*\\*${subHeader}\\*\\*[\\s\\S]*?([\\s\\S]*?)(?=\\n###|$)`, 'i')
+    const match = treatmentSection.match(regex)
+    if (!match) return []
+    return match[1]
+      .split('\n')
+      .map(line => line.replace(/^\d+\.\s*|-\s*/, '').trim())
+      .filter(line => line.length > 0)
+  }
+
+  return {
+    crop_name: extractSection('Crop Identification').split('\n')[0] || 'Unknown Crop',
+    health_status: extractSection('Health Status').toLowerCase().includes('healthy') ? 'Healthy' : 'Diseased',
+    disease_name: extractSection('Disease/Issue Detected').split('\n')[0] || 'Unknown Issue',
+    symptoms: extractList('Symptoms'),
+    treatment: {
+      organic: extractTreatment('Organic Solutions'),
+      chemical: extractTreatment('Chemical Pesticides/Fungicides'),
+      cultural: extractTreatment('Cultural Practices')
+    },
+    prevention: extractList('Prevention'),
+    urgency: extractSection('Urgency').toLowerCase().includes('high') ? 'High' :
+      extractSection('Urgency').toLowerCase().includes('medium') ? 'Medium' : 'Low'
+  }
 }
