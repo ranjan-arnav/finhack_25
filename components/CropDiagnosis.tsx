@@ -34,6 +34,7 @@ export default function CropDiagnosis({ darkMode }: CropDiagnosisProps) {
   const [retryCount, setRetryCount] = useState(0)
   const [progress, setProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const groq = new GroqService()
   const MAX_RETRIES = 2
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -225,11 +226,21 @@ Be specific and practical. Respond ONLY with valid JSON.`
       </div>
 
       <div className={`glass-effect rounded-3xl p-4 sm:p-6 shadow-xl ${darkMode ? 'bg-gray-800/90 text-white' : 'bg-white/90 text-gray-800'}`}>
+        {/* Camera input - opens camera on mobile */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+
+        {/* File input - opens file explorer */}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handleImageUpload}
           className="hidden"
         />
@@ -238,7 +249,7 @@ Be specific and practical. Respond ONLY with valid JSON.`
           <div className="space-y-4">
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => cameraInputRef.current?.click()}
               className="w-full btn-primary py-6 text-xl flex items-center justify-center gap-3"
             >
               <Camera size={32} />
