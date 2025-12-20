@@ -6,7 +6,6 @@
 
 Kisan Mitra is an AI-powered agricultural companion designed to empower Indian farmers by bridging the information gap. It provides real-time market intelligence, personalized crop advisory, and economic literacy in **10 Indian languages**.
 
-![Kisan Mitra Icon](/public/icon-192.png)
 
 ## 🏆 Innovation & Impact (Why this matters)
 
