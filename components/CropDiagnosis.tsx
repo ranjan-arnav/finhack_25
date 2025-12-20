@@ -129,20 +129,38 @@ export default function CropDiagnosis({ darkMode }: CropDiagnosisProps) {
       const user = storage.getUser()
       const location = user?.location
 
+      // Map language codes to full names for the AI prompt
+      const languageNames: Record<Language, string> = {
+        en: 'English',
+        hi: 'Hindi (हिंदी)',
+        ta: 'Tamil (தமிழ்)',
+        te: 'Telugu (తెలుగు)',
+        ml: 'Malayalam (മലയാളം)',
+        kn: 'Kannada (ಕನ್ನಡ)',
+        gu: 'Gujarati (ગુજરાતી)',
+        bn: 'Bengali (বাংলা)',
+        mr: 'Marathi (मराठी)',
+        pa: 'Punjabi (ਪੰਜਾਬੀ)'
+      }
+
+      const languageName = languageNames[currentLang] || 'English'
+
       const prompt = `You are an expert agricultural pathologist. Analyze this crop image carefully.
+
+**IMPORTANT**: Provide your entire response in ${languageName} language. All field values (crop_name, disease_name, symptoms, treatment, prevention) must be in ${languageName}.
 
 Provide your analysis in this EXACT JSON format:
 {
-  "crop_name": "Name of the crop",
+  "crop_name": "Name of the crop in ${languageName}",
   "health_status": "Healthy" or "Diseased",
-  "disease_name": "Name of disease if diseased, otherwise 'None'",
-  "symptoms": ["symptom 1", "symptom 2"],
+  "disease_name": "Name of disease if diseased, otherwise 'None' (in ${languageName})",
+  "symptoms": ["symptom 1 in ${languageName}", "symptom 2 in ${languageName}"],
   "treatment": {
-    "organic": ["organic solution 1", "organic solution 2"],
-    "chemical": ["chemical solution 1", "chemical solution 2"],
-    "cultural": ["cultural practice 1", "cultural practice 2"]
+    "organic": ["organic solution 1 in ${languageName}", "organic solution 2 in ${languageName}"],
+    "chemical": ["chemical solution 1 in ${languageName}", "chemical solution 2 in ${languageName}"],
+    "cultural": ["cultural practice 1 in ${languageName}", "cultural practice 2 in ${languageName}"]
   },
-  "prevention": ["prevention tip 1", "prevention tip 2"],
+  "prevention": ["prevention tip 1 in ${languageName}", "prevention tip 2 in ${languageName}"],
   "urgency": "Low", "Medium", or "High"
 }
 
