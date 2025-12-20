@@ -37,28 +37,24 @@ export default function Home() {
 
       // Auto-create Crop objects from onboarding selections
       if (userData.crops && Array.isArray(userData.crops) && userData.crops.length > 0) {
-        const existingCrops = storage.getCrops()
+        const today = new Date()
+        const harvestDate = new Date()
+        harvestDate.setDate(today.getDate() + 90) // Default 90 days to harvest
 
-        // Only create crops if none exist yet (avoid duplicates)
-        if (existingCrops.length === 0) {
-          const today = new Date()
-          const harvestDate = new Date()
-          harvestDate.setDate(today.getDate() + 90) // Default 90 days to harvest
-
-          userData.crops.forEach((cropId: string) => {
-            const newCrop = {
-              id: `${Date.now()}-${cropId}`,
-              name: cropId.charAt(0).toUpperCase() + cropId.slice(1), // Capitalize
-              plantedDate: today.toISOString().split('T')[0],
-              expectedHarvestDate: harvestDate.toISOString().split('T')[0],
-              status: 'healthy' as const,
-              progress: 0,
-              daysToHarvest: 90,
-              notes: 'Added during onboarding'
-            }
-            storage.addCrop(newCrop)
-          })
-        }
+        // Always create crops from onboarding selections
+        userData.crops.forEach((cropId: string) => {
+          const newCrop = {
+            id: `${Date.now()}-${Math.random()}-${cropId}`,
+            name: cropId.charAt(0).toUpperCase() + cropId.slice(1), // Capitalize
+            plantedDate: today.toISOString().split('T')[0],
+            expectedHarvestDate: harvestDate.toISOString().split('T')[0],
+            status: 'healthy' as const,
+            progress: 0,
+            daysToHarvest: 90,
+            notes: 'Added during onboarding'
+          }
+          storage.addCrop(newCrop)
+        })
       }
     }
     router.push('/dashboard')
