@@ -35,7 +35,7 @@ interface OnboardingFlowProps {
   onComplete: (userData?: any) => void
 }
 
-type StepType = 'language' | 'role' | 'crops' | 'tour' | 'profile' | 'success'
+type StepType = 'language' | 'role' | 'crops' | 'cropDetails' | 'tour' | 'profile' | 'success'
 
 const COMMON_CROPS = [
   { id: 'wheat', name: { en: 'Wheat', hi: 'गेहूं', ta: 'கோதுமை' }, icon: Wheat },
@@ -54,10 +54,24 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const [formData, setFormData] = useState({
     role: '',
-    selectedCrops: [] as string[],
+    selectedCrops: [] as Array<{
+      id: string
+      name: string
+      plantedDate: string
+      expectedHarvestDate: string
+      landSize: string
+    }>,
     name: '',
     location: '',
     farmSize: '',
+  })
+
+  const [tempCropSelections, setTempCropSelections] = useState<string[]>([])
+  const [currentCropIndex, setCurrentCropIndex] = useState(0)
+  const [currentCropForm, setCurrentCropForm] = useState({
+    plantedDate: '',
+    expectedHarvestDate: '',
+    landSize: ''
   })
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
@@ -70,7 +84,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     if (storedUser) {
       setFormData({
         role: storedUser.role || '',
-        selectedCrops: storedUser.crops || [],
+        selectedCrops: [], // Don't load from storage, will be collected fresh
         name: storedUser.name || '',
         location: storedUser.location || '',
         farmSize: storedUser.farmSize || '',
@@ -90,12 +104,52 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }
 
   const toggleCrop = (cropId: string) => {
-    setFormData(prev => {
-      const crops = prev.selectedCrops.includes(cropId)
-        ? prev.selectedCrops.filter(c => c !== cropId)
-        : [...prev.selectedCrops, cropId]
-      return { ...prev, selectedCrops: crops }
-    })
+    setTempCropSelections(prev =>
+      prev.includes(cropId)
+        ? prev.filter(c => c !== cropId)
+        : [...prev, cropId]
+    )
+  }
+
+  const proceedToCropDetails = () => {
+    if (tempCropSelections.length === 0) {
+      alert(getTranslation('onboarding.selectAtLeastOne', currentLanguage) || 'Please select at least one crop')
+      return
+    }
+    setCurrentCropIndex(0)
+    setStep('cropDetails')
+  }
+
+  const saveCropDetails = () => {
+    if (!currentCropForm.plantedDate || !currentCropForm.expectedHarvestDate || !currentCropForm.landSize) {
+      alert(getTranslation('onboarding.fillAllFields', currentLanguage))
+      return
+    }
+
+    const cropId = tempCropSelections[currentCropIndex]
+    const cropData = COMMON_CROPS.find(c => c.id === cropId)
+    const cropName = (cropData?.name as any)?.[currentLanguage] || cropId
+
+    const newCrop = {
+      id: cropId,
+      name: cropName,
+      plantedDate: currentCropForm.plantedDate,
+      expectedHarvestDate: currentCropForm.expectedHarvestDate,
+      landSize: currentCropForm.landSize
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      selectedCrops: [...prev.selectedCrops, newCrop]
+    }))
+
+    // Move to next crop or finish
+    if (currentCropIndex < tempCropSelections.length - 1) {
+      setCurrentCropIndex(prev => prev + 1)
+      setCurrentCropForm({ plantedDate: '', expectedHarvestDate: '', landSize: '' })
+    } else {
+      setStep('tour')
+    }
   }
 
   const nextTourSlide = () => {
@@ -107,10 +161,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }
 
   const handleFinish = () => {
+    // Save crop IDs to user.crops for backward compatibility
+    const cropIds = formData.selectedCrops.map(c => c.id)
+
     storage.setUser({
       ...formData,
       language: currentLanguage,
-      crops: formData.selectedCrops
+      crops: cropIds
     })
     storage.setOnboarded(true)
 
@@ -210,7 +267,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
       <div className="flex flex-wrap justify-center gap-3 mb-8">
         {COMMON_CROPS.map(crop => {
-          const isSelected = formData.selectedCrops.includes(crop.id)
+          const isSelected = tempCropSelections.includes(crop.id)
           // Rough translation fallback
           const name = (crop.name as any)[currentLanguage] || crop.name.en
 
@@ -232,14 +289,93 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         })}
       </div>
 
-      <button
-        onClick={() => setStep('tour')}
-        className="btn-primary w-full py-4 text-lg rounded-xl shadow-lg"
+      <motion.button
+        whileTap={{ scale: 0.95 }}
+        onClick={proceedToCropDetails}
+        disabled={tempCropSelections.length === 0}
+        className="w-full btn-primary py-4 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {getTranslation('onboarding.next', currentLanguage)}
-      </button>
+      </motion.button>
     </motion.div>
   )
+
+  const renderCropDetails = () => {
+    const currentCropId = tempCropSelections[currentCropIndex]
+    const cropData = COMMON_CROPS.find(c => c.id === currentCropId)
+    const cropName = (cropData?.name as any)?.[currentLanguage] || currentCropId
+    const CropIcon = cropData?.icon || Leaf
+    const isLastCrop = currentCropIndex === tempCropSelections.length - 1
+
+    return (
+      <motion.div className="max-w-2xl w-full mx-auto p-6">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <CropIcon size={40} className="text-green-600" />
+            <h2 className="text-3xl font-bold">
+              {getTranslation('onboarding.cropDetails.title', currentLanguage)} {cropName}
+            </h2>
+          </div>
+          <p className="text-gray-500">{getTranslation('onboarding.cropDetails.subtitle', currentLanguage)}</p>
+          <p className="text-sm text-gray-400 mt-2">
+            Crop {currentCropIndex + 1} of {tempCropSelections.length}
+          </p>
+        </div>
+
+        <div className="space-y-6 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+              {getTranslation('onboarding.cropDetails.plantedDate', currentLanguage)}
+            </label>
+            <input
+              type="date"
+              value={currentCropForm.plantedDate}
+              onChange={(e) => setCurrentCropForm(prev => ({ ...prev, plantedDate: e.target.value }))}
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:border-green-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+              {getTranslation('onboarding.cropDetails.harvestDate', currentLanguage)}
+            </label>
+            <input
+              type="date"
+              value={currentCropForm.expectedHarvestDate}
+              onChange={(e) => setCurrentCropForm(prev => ({ ...prev, expectedHarvestDate: e.target.value }))}
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:border-green-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+              {getTranslation('onboarding.cropDetails.landSize', currentLanguage)}
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              value={currentCropForm.landSize}
+              onChange={(e) => setCurrentCropForm(prev => ({ ...prev, landSize: e.target.value }))}
+              placeholder="e.g., 2.5"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:border-green-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={saveCropDetails}
+            className="w-full btn-primary py-4 text-xl"
+          >
+            {isLastCrop
+              ? getTranslation('onboarding.cropDetails.finishCrops', currentLanguage)
+              : getTranslation('onboarding.cropDetails.nextCrop', currentLanguage)
+            }
+          </motion.button>
+        </div>
+      </motion.div>
+    )
+  }
 
   // Reusing existing tour content but simplified
   const renderTour = () => {
@@ -332,6 +468,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         {step === 'language' && renderLanguage()}
         {step === 'role' && renderRole()}
         {step === 'crops' && renderCrops()}
+        {step === 'cropDetails' && renderCropDetails()}
         {step === 'tour' && renderTour()}
         {step === 'profile' && renderProfile()}
         {step === 'success' && renderSuccess()}
@@ -339,4 +476,3 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     </div>
   )
 }
-

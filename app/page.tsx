@@ -35,23 +35,28 @@ export default function Home() {
     if (userData) {
       storage.setUser(userData)
 
-      // Auto-create Crop objects from onboarding selections
-      if (userData.crops && Array.isArray(userData.crops) && userData.crops.length > 0) {
-        const today = new Date()
-        const harvestDate = new Date()
-        harvestDate.setDate(today.getDate() + 90) // Default 90 days to harvest
+      // Create Crop objects from detailed onboarding data
+      if (userData.selectedCrops && Array.isArray(userData.selectedCrops) && userData.selectedCrops.length > 0) {
+        userData.selectedCrops.forEach((cropData: any) => {
+          const plantedDate = new Date(cropData.plantedDate)
+          const harvestDate = new Date(cropData.expectedHarvestDate)
+          const today = new Date()
 
-        // Always create crops from onboarding selections
-        userData.crops.forEach((cropId: string) => {
+          // Calculate progress and days to harvest
+          const totalDays = Math.ceil((harvestDate.getTime() - plantedDate.getTime()) / (1000 * 60 * 60 * 24))
+          const daysElapsed = Math.ceil((today.getTime() - plantedDate.getTime()) / (1000 * 60 * 60 * 24))
+          const progress = Math.min(Math.max((daysElapsed / totalDays) * 100, 0), 100)
+          const daysToHarvest = Math.max(totalDays - daysElapsed, 0)
+
           const newCrop = {
-            id: `${Date.now()}-${Math.random()}-${cropId}`,
-            name: cropId.charAt(0).toUpperCase() + cropId.slice(1), // Capitalize
-            plantedDate: today.toISOString().split('T')[0],
-            expectedHarvestDate: harvestDate.toISOString().split('T')[0],
+            id: `${Date.now()}-${Math.random()}-${cropData.id}`,
+            name: cropData.name,
+            plantedDate: cropData.plantedDate,
+            expectedHarvestDate: cropData.expectedHarvestDate,
             status: 'healthy' as const,
-            progress: 0,
-            daysToHarvest: 90,
-            notes: 'Added during onboarding'
+            progress: Math.round(progress),
+            daysToHarvest,
+            notes: `Land size: ${cropData.landSize} acres`
           }
           storage.addCrop(newCrop)
         })
