@@ -1,100 +1,77 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { MapPin, Search, Store, IndianRupee, Phone, Navigation } from 'lucide-react'
+import { MapPin, Search, Store, IndianRupee, Phone, Navigation, MapPinned } from 'lucide-react'
 import type { InputShop } from '@/lib/types'
 import { getTranslation, getCurrentLanguage, type Language } from '@/lib/i18n'
+import { InputShopService } from '@/lib/inputShops'
 
 export default function InputFinder() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<'all' | 'pmksk' | 'private'>('all')
   const [currentLang, setCurrentLang] = useState<Language>('en')
+  const [shops, setShops] = useState<InputShop[]>([])
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationError, setLocationError] = useState<string | null>(null)
 
   useEffect(() => {
     setCurrentLang(getCurrentLanguage())
-    
+
     const handleLanguageChange = () => {
       setCurrentLang(getCurrentLanguage())
     }
-    
+
     window.addEventListener('languageChange', handleLanguageChange)
     return () => window.removeEventListener('languageChange', handleLanguageChange)
   }, [])
 
-  // Demo data for input shops
-  const shops: InputShop[] = [
-    {
-      name: 'PMKSK Fertilizer Center',
-      type: 'pmksk',
-      distance: 2.5,
-      address: 'Near Bus Stand, Main Road',
-      phone: '+91 98765 43210',
-      items: [
-        { name: 'Urea (50kg)', price: 266 },
-        { name: 'DAP (50kg)', price: 1350 },
-        { name: 'NPK (50kg)', price: 1050 },
-      ],
-    },
-    {
-      name: 'Green Valley Agro Store',
-      type: 'private',
-      distance: 1.8,
-      address: 'Market Road, Shop No. 15',
-      phone: '+91 98765 43211',
-      items: [
-        { name: 'Urea (50kg)', price: 280 },
-        { name: 'DAP (50kg)', price: 1400 },
-        { name: 'NPK (50kg)', price: 1100 },
-        { name: 'Organic Fertilizer', price: 450 },
-      ],
-    },
-    {
-      name: 'PMKSK Seeds & Pesticides',
-      type: 'pmksk',
-      distance: 4.2,
-      address: 'Agriculture Office Complex',
-      phone: '+91 98765 43212',
-      items: [
-        { name: 'Pesticide A', price: 350 },
-        { name: 'Pesticide B', price: 420 },
-        { name: 'Seeds (1kg)', price: 180 },
-      ],
-    },
-    {
-      name: 'Farmer Choice Inputs',
-      type: 'private',
-      distance: 3.5,
-      address: 'Highway Junction',
-      phone: '+91 98765 43213',
-      items: [
-        { name: 'Urea (50kg)', price: 275 },
-        { name: 'Pesticide A', price: 340 },
-        { name: 'Pesticide B', price: 410 },
-      ],
-    },
-    {
-      name: 'Kisan Seva Kendra',
-      type: 'pmksk',
-      distance: 5.0,
-      address: 'Village Center',
-      phone: '+91 98765 43214',
-      items: [
-        { name: 'DAP (50kg)', price: 1345 },
-        { name: 'NPK (50kg)', price: 1045 },
-        { name: 'Micronutrients', price: 280 },
-      ],
-    },
-  ]
+  // Load shops on mount
+  useEffect(() => {
+    loadShops()
+  }, [])
 
-  const filteredShops = shops.filter((shop) => {
-    const matchesType = selectedType === 'all' || shop.type === selectedType
-    const matchesSearch =
-      searchQuery === '' ||
-      shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      shop.items.some((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    return matchesType && matchesSearch
-  })
+  const loadShops = () => {
+    const allShops = InputShopService.getAllShops()
+    setShops(allShops)
+  }
+
+  const requestLocation = useCallback(async () => {
+    setLocationLoading(true)
+    setLocationError(null)
+
+    const location = await InputShopService.getUserLocation()
+
+    if (location) {
+      setUserLocation(location)
+      // Reload shops with distance calculation
+      const shopsWithDistance = InputShopService.getShopsNearLocation(
+        location.lat,
+        location.lng,
+        100 // 100km radius
+      )
+      setShops(shopsWithDistance)
+    } else {
+      setLocationError('Location access denied. Showing all shops.')
+      // Just load all shops without distance
+      loadShops()
+    }
+
+    setLocationLoading(false)
+  }, [])
+
+  // Request user location on mount
+  useEffect(() => {
+    requestLocation()
+  }, [requestLocation])
+
+  // Filter shops based on search and type
+  const filteredShops = InputShopService.searchShops(
+    searchQuery,
+    selectedType,
+    userLocation || undefined
+  )
 
   return (
     <motion.div
@@ -111,6 +88,45 @@ export default function InputFinder() {
           {getTranslation('inputFinder.description', currentLang)}
         </p>
       </div>
+
+      {/* Location Status Banner */}
+      {locationLoading && (
+        <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+          <p className="text-blue-700 dark:text-blue-300 font-medium">Getting your location...</p>
+        </div>
+      )}
+
+      {locationError && (
+        <div className="mb-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-2xl p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <MapPinned className="text-orange-600 dark:text-orange-400 mt-0.5" size={20} />
+              <div>
+                <p className="text-orange-700 dark:text-orange-300 font-medium">{locationError}</p>
+                <p className="text-orange-600 dark:text-orange-400 text-sm mt-1">
+                  Enable location for distance-based sorting
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={requestLocation}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
+      {userLocation && !locationLoading && (
+        <div className="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4 flex items-center gap-3">
+          <MapPinned className="text-green-600 dark:text-green-400" size={20} />
+          <p className="text-green-700 dark:text-green-300 font-medium">
+            ✓ Location enabled - Showing shops sorted by distance
+          </p>
+        </div>
+      )}
 
       <div className="glass-effect rounded-3xl p-6 shadow-xl space-y-6">
         {/* Search */}
@@ -130,33 +146,30 @@ export default function InputFinder() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => setSelectedType('all')}
-            className={`flex-1 py-4 rounded-2xl font-bold transition-all ${
-              selectedType === 'all'
-                ? 'bg-purple-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 border-2 border-gray-200'
-            }`}
+            className={`flex-1 py-4 rounded-2xl font-bold transition-all ${selectedType === 'all'
+              ? 'bg-purple-600 text-white shadow-lg'
+              : 'bg-white text-gray-700 border-2 border-gray-200'
+              }`}
           >
             {getTranslation('inputFinder.allShops', currentLang)} ({shops.length})
           </motion.button>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => setSelectedType('pmksk')}
-            className={`flex-1 py-4 rounded-2xl font-bold transition-all ${
-              selectedType === 'pmksk'
-                ? 'bg-green-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 border-2 border-gray-200'
-            }`}
+            className={`flex-1 py-4 rounded-2xl font-bold transition-all ${selectedType === 'pmksk'
+              ? 'bg-green-600 text-white shadow-lg'
+              : 'bg-white text-gray-700 border-2 border-gray-200'
+              }`}
           >
             {getTranslation('inputFinder.pmkskCenters', currentLang)}
           </motion.button>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => setSelectedType('private')}
-            className={`flex-1 py-4 rounded-2xl font-bold transition-all ${
-              selectedType === 'private'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 border-2 border-gray-200'
-            }`}
+            className={`flex-1 py-4 rounded-2xl font-bold transition-all ${selectedType === 'private'
+              ? 'bg-blue-600 text-white shadow-lg'
+              : 'bg-white text-gray-700 border-2 border-gray-200'
+              }`}
           >
             {getTranslation('inputFinder.privateShops', currentLang)}
           </motion.button>
@@ -184,11 +197,10 @@ export default function InputFinder() {
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-xl font-bold text-gray-800">{shop.name}</h3>
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          shop.type === 'pmksk'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${shop.type === 'pmksk'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-blue-100 text-blue-700'
+                          }`}
                       >
                         {shop.type === 'pmksk' ? 'PMKSK' : 'Private'}
                       </span>

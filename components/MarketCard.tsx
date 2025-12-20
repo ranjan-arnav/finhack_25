@@ -236,9 +236,9 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
                     item.bestTimeToSell === 'sell-soon' ? 'bg-blue-500 text-white' :
                       'bg-gray-400 text-white'
                     }`}>
-                    {item.bestTimeToSell === 'now' ? '🎯 Sell Now' :
-                      item.bestTimeToSell === 'sell-soon' ? '📅 Sell Soon' :
-                        '⏳ Wait'}
+                    {item.bestTimeToSell === 'now' ? `🎯 ${getTranslation('market.sellNow', currentLang)}` :
+                      item.bestTimeToSell === 'sell-soon' ? `📅 ${getTranslation('market.sellSoon', currentLang)}` :
+                        `⏳ ${getTranslation('market.wait', currentLang)}`}
                   </div>
                 )}
               </div>
@@ -249,7 +249,7 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
                     ₹{item.price.toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {getTranslation('crops.per', currentLang)} {item.unit}
+                    {getTranslation('market.per', currentLang)} {item.unit}
                   </p>
                 </div>
                 <div className={`flex flex-col items-end ${item.trend === 'up' ? 'text-green-600' : 'text-red-500'}`}>
@@ -315,8 +315,8 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
                       <span className={`font-bold ${item.price >= item.msp ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'
                         }`}>
                         {item.price >= item.msp ?
-                          `+₹${(item.price - item.msp).toLocaleString()} above` :
-                          `-₹${(item.msp - item.price).toLocaleString()} below`}
+                          `+₹${(item.price - item.msp).toLocaleString()} ${getTranslation('market.above', currentLang)}` :
+                          `-₹${(item.msp - item.price).toLocaleString()} ${getTranslation('market.below', currentLang)}`}
                       </span>
                     </div>
                   </div>

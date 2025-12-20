@@ -53,13 +53,18 @@ export interface ChatMessage {
 }
 
 export interface InputShop {
+  id?: string
   name: string
   type: 'pmksk' | 'private'
-  distance: number
+  location?: { lat: number; lng: number }
+  distance?: number
   items: Array<{
     name: string
     price: number
+    lastUpdated?: Date
   }>
   address: string
   phone?: string
+  verified?: boolean
+  rating?: number
 }
