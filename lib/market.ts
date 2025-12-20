@@ -10,6 +10,14 @@ export interface MarketPrice {
   lastUpdated: Date
   priceHistory: Array<{ date: string; price: number }>
   distance?: number // Distance from user in km
+  // Enhanced fields
+  yesterdayPrice?: number
+  lastWeekPrice?: number
+  lastMonthPrice?: number
+  volatility?: 'low' | 'medium' | 'high'
+  bestTimeToSell?: 'now' | 'wait' | 'sell-soon'
+  msp?: number // Minimum Support Price
+  qualityGrades?: Array<{ grade: string; price: number }>
 }
 
 export class MarketService {
@@ -270,5 +278,133 @@ export class MarketService {
     const grossRevenue = price * quantity
     const totalTransportCost = distance * transportCostPerKm
     return grossRevenue - totalTransportCost
+  }
+
+  // Enhanced Market Intelligence Methods
+
+  static calculateVolatility(priceHistory: Array<{ date: string; price: number }>): 'low' | 'medium' | 'high' {
+    if (priceHistory.length < 2) return 'low'
+
+    const prices = priceHistory.map(p => p.price)
+    const changes = []
+    for (let i = 1; i < prices.length; i++) {
+      const change = Math.abs((prices[i] - prices[i - 1]) / prices[i - 1] * 100)
+      changes.push(change)
+    }
+
+    const avgChange = changes.reduce((a, b) => a + b, 0) / changes.length
+
+    if (avgChange > 5) return 'high'
+    if (avgChange > 2) return 'medium'
+    return 'low'
+  }
+
+  static getPriceComparisons(price: MarketPrice): {
+    vsYesterday: number
+    vsLastWeek: number
+    vsLastMonth: number
+  } {
+    const history = price.priceHistory
+    const currentPrice = price.price
+
+    // Yesterday (last item in history)
+    const yesterdayPrice = history.length > 0 ? history[history.length - 1].price : currentPrice
+    const vsYesterday = ((currentPrice - yesterdayPrice) / yesterdayPrice * 100)
+
+    // Last week (7 days ago, or earliest if less than 7 days)
+    const lastWeekIndex = Math.max(0, history.length - 7)
+    const lastWeekPrice = history[lastWeekIndex]?.price || currentPrice
+    const vsLastWeek = ((currentPrice - lastWeekPrice) / lastWeekPrice * 100)
+
+    // Last month (30 days ago, or earliest)
+    const lastMonthIndex = Math.max(0, history.length - 30)
+    const lastMonthPrice = history[lastMonthIndex]?.price || currentPrice
+    const vsLastMonth = ((currentPrice - lastMonthPrice) / lastMonthPrice * 100)
+
+    return {
+      vsYesterday: Number(vsYesterday.toFixed(2)),
+      vsLastWeek: Number(vsLastWeek.toFixed(2)),
+      vsLastMonth: Number(vsLastMonth.toFixed(2))
+    }
+  }
+
+  static getBestTimeToSellAdvice(price: MarketPrice): {
+    recommendation: 'now' | 'wait' | 'sell-soon'
+    reason: string
+  } {
+    const volatility = this.calculateVolatility(price.priceHistory)
+    const comparisons = this.getPriceComparisons(price)
+
+    // Strong upward trend + high volatility = sell now before it drops
+    if (price.trend === 'up' && price.change > 8 && volatility === 'high') {
+      return {
+        recommendation: 'now',
+        reason: 'Prices are high but volatile. Sell now before potential drop.'
+      }
+    }
+
+    // Strong upward trend + low volatility = sell soon
+    if (price.trend === 'up' && price.change > 5 && volatility === 'low') {
+      return {
+        recommendation: 'sell-soon',
+        reason: 'Steady price increase. Good time to sell in next 2-3 days.'
+      }
+    }
+
+    // Downward trend = wait
+    if (price.trend === 'down' && price.change < -3) {
+      return {
+        recommendation: 'wait',
+        reason: 'Prices are falling. Wait for market to stabilize.'
+      }
+    }
+
+    // Stable prices
+    if (Math.abs(price.change) < 2) {
+      return {
+        recommendation: 'now',
+        reason: 'Market is stable. Good time for planned sales.'
+      }
+    }
+
+    // Default
+    return {
+      recommendation: 'sell-soon',
+      reason: 'Market conditions are favorable.'
+    }
+  }
+
+  static enrichPriceData(prices: MarketPrice[]): MarketPrice[] {
+    return prices.map(price => {
+      const comparisons = this.getPriceComparisons(price)
+      const volatility = this.calculateVolatility(price.priceHistory)
+      const sellAdvice = this.getBestTimeToSellAdvice(price)
+
+      return {
+        ...price,
+        yesterdayPrice: price.priceHistory[price.priceHistory.length - 1]?.price,
+        volatility,
+        bestTimeToSell: sellAdvice.recommendation,
+        // Add MSP data for common crops
+        msp: this.getMSP(price.name)
+      }
+    })
+  }
+
+  static getMSP(cropName: string): number | undefined {
+    const mspData: Record<string, number> = {
+      'wheat': 2125,
+      'rice': 2183,
+      'paddy': 2183,
+      'cotton': 6620,
+      'sugarcane': 315, // per quintal
+      'maize': 2090,
+      'soyabean': 4600,
+      'mustard': 5650,
+      'groundnut': 6377,
+      'turmeric': 10000,
+    }
+
+    return mspData[cropName.toLowerCase()]
   }
 }

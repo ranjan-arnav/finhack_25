@@ -41,7 +41,9 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
     setLoading(true)
     try {
       const data = await MarketService.fetchMarketPrices()
-      setPrices(data)
+      // Enrich with enhanced intelligence
+      const enrichedData = MarketService.enrichPriceData(data)
+      setPrices(enrichedData)
       // Format time on client side only to avoid hydration mismatch
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (error) {
@@ -204,11 +206,41 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight mb-1">{getCropDisplayName(item.name)}</h4>
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">
-                      {item.market}
-                    </span>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">
+                        {item.market}
+                      </span>
+                      {/* Volatility Badge */}
+                      {item.volatility && (
+                        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${item.volatility === 'high' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
+                          item.volatility === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
+                            'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          }`}>
+                          {item.volatility === 'high' ? '⚡ High Vol' : item.volatility === 'medium' ? '📊 Med Vol' : '✓ Stable'}
+                        </span>
+                      )}
+                      {/* MSP Badge */}
+                      {item.msp && (
+                        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${item.price >= item.msp ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                          'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                          }`}>
+                          {item.price >= item.msp ? `✓ Above MSP` : `⚠ Below MSP`}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
+                {/* Best Time to Sell Badge */}
+                {item.bestTimeToSell && (
+                  <div className={`px-3 py-1.5 rounded-full text-xs font-bold ${item.bestTimeToSell === 'now' ? 'bg-green-500 text-white' :
+                    item.bestTimeToSell === 'sell-soon' ? 'bg-blue-500 text-white' :
+                      'bg-gray-400 text-white'
+                    }`}>
+                    {item.bestTimeToSell === 'now' ? '🎯 Sell Now' :
+                      item.bestTimeToSell === 'sell-soon' ? '📅 Sell Soon' :
+                        '⏳ Wait'}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-end justify-between mb-4 relative z-10">
@@ -232,13 +264,70 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
               </div>
 
               {/* Chart */}
-              <div className="h-24 -mx-2 mb-2">
+              <div className="h-24 -mx-2 mb-3">
                 <PriceChart data={item.priceHistory} trend={item.trend} height={96} showGrid={false} />
               </div>
 
-              <div className="flex justify-between items-center text-xs text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-700 pt-3 mt-2">
-                <span>Last 7 Days Trend</span>
-                <span>Today</span>
+              {/* Enhanced Price Comparisons */}
+              <div className="space-y-2 border-t border-gray-100 dark:border-gray-700 pt-3">
+                {/* Price Comparisons */}
+                {item.yesterdayPrice && (
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="text-gray-400 dark:text-gray-500 mb-1">vs Yesterday</div>
+                      <div className={`font-bold ${MarketService.getPriceComparisons(item).vsYesterday > 0 ? 'text-green-600' :
+                          MarketService.getPriceComparisons(item).vsYesterday < 0 ? 'text-red-500' :
+                            'text-gray-500'
+                        }`}>
+                        {MarketService.getPriceComparisons(item).vsYesterday > 0 ? '+' : ''}
+                        {MarketService.getPriceComparisons(item).vsYesterday}%
+                      </div>
+                    </div>
+                    <div className="text-center border-x border-gray-200 dark:border-gray-700">
+                      <div className="text-gray-400 dark:text-gray-500 mb-1">vs Last Week</div>
+                      <div className={`font-bold ${MarketService.getPriceComparisons(item).vsLastWeek > 0 ? 'text-green-600' :
+                          MarketService.getPriceComparisons(item).vsLastWeek < 0 ? 'text-red-500' :
+                            'text-gray-500'
+                        }`}>
+                        {MarketService.getPriceComparisons(item).vsLastWeek > 0 ? '+' : ''}
+                        {MarketService.getPriceComparisons(item).vsLastWeek}%
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-400 dark:text-gray-500 mb-1">vs Last Month</div>
+                      <div className={`font-bold ${MarketService.getPriceComparisons(item).vsLastMonth > 0 ? 'text-green-600' :
+                          MarketService.getPriceComparisons(item).vsLastMonth < 0 ? 'text-red-500' :
+                            'text-gray-500'
+                        }`}>
+                        {MarketService.getPriceComparisons(item).vsLastMonth > 0 ? '+' : ''}
+                        {MarketService.getPriceComparisons(item).vsLastMonth}%
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MSP Details */}
+                {item.msp && (
+                  <div className={`mt-2 p-2 rounded-lg text-xs ${item.price >= item.msp ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20'
+                    }`}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">MSP: ₹{item.msp.toLocaleString()}</span>
+                      <span className={`font-bold ${item.price >= item.msp ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'
+                        }`}>
+                        {item.price >= item.msp ?
+                          `+₹${(item.price - item.msp).toLocaleString()} above` :
+                          `-₹${(item.msp - item.price).toLocaleString()} below`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Selling Advice */}
+                {item.bestTimeToSell && (
+                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 italic">
+                    💡 {MarketService.getBestTimeToSellAdvice(item).reason}
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}
