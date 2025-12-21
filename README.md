@@ -79,3 +79,4 @@ Built with modern, scalable technologies to ensure performance even on low-end d
 ---
 
 *Built with ❤️ for FINhack 2025*
+ minor documentation update 
