@@ -47,7 +47,7 @@ export default function Dashboard() {
   const [aiInsight, setAiInsight] = useState<string>('')
   const [aiInsightLoading, setAiInsightLoading] = useState(false)
   const [aiInsightError, setAiInsightError] = useState(false)
-  const groq = useMemo(() => new GroqService(), [])
+  const groq = useMemo(() =>new GroqService(), [])
 
   useEffect(() => {
     const userData = storage.getUser()
