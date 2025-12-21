@@ -1,6 +1,6 @@
 ﻿# Kisan Mitra (Farmers' Friend) 
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/d21a574f-7d90-405c-adbd-15c28bf4126e/deploy-status)](https://app.netlify.com/projects/finhack25/deploys)🌾
+[![Netlify Status](https://api.netlify.com/api/v1/badges/d21a574f-7d90-405c-adbd-15c28bf4126e/deploy-status)](https://app.netlify.com/projects/finhack25/deploys) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 🌾
 
 > **Tech for Economic Empowerment: Rural Market Support Platform**
 
