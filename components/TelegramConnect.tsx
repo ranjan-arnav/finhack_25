@@ -36,7 +36,7 @@ export default function TelegramConnect({ onClose }: TelegramConnectProps) {
     try {
       // Simulate successful link with hardcoded code
       const mockUserId = '12345'
-      
+
       // Link account locally
       TelegramService.linkTelegramAccount(
         mockUserId,
@@ -195,7 +195,7 @@ export default function TelegramConnect({ onClose }: TelegramConnectProps) {
               <ol className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
                 <li className="flex gap-3">
                   <span className="font-bold text-green-600">1.</span>
-                  <span>Open Telegram and search for <strong>@krishisalahkaarBot</strong></span>
+                  <span>Open Telegram and search for <strong>@KisaanMitraBot</strong></span>
                 </li>
                 <li className="flex gap-3">
                   <span className="font-bold text-green-600">2.</span>
