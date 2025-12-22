@@ -198,3 +198,57 @@ export function setUserLocationByCity(cityName: string): LocationData | null {
     saveUserLocation(location)
     return location
 }
+
+/**
+ * Geocode a location name to coordinates using OpenStreetMap Nominatim API
+ * This works for ANY market/city name, not just hardcoded ones
+ */
+export async function geocodeLocation(locationName: string, country: string = 'India'): Promise<Coordinates | null> {
+    try {
+        // Use OpenStreetMap Nominatim API (free, no API key needed)
+        const query = encodeURIComponent(`${locationName}, ${country}`)
+        const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`
+
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'KisanMitra/1.0' // Required by Nominatim
+            }
+        })
+
+        if (!response.ok) {
+            console.warn('Geocoding failed:', response.statusText)
+            return null
+        }
+
+        const data = await response.json()
+
+        if (data && data.length > 0) {
+            return {
+                latitude: parseFloat(data[0].lat),
+                longitude: parseFloat(data[0].lon)
+            }
+        }
+
+        return null
+    } catch (error) {
+        console.error('Geocoding error:', error)
+        return null
+    }
+}
+
+/**
+ * Get market coordinates - tries hardcoded list first, then geocoding
+ * This ensures it works for both demo data AND real AGMARKNET markets
+ */
+export async function getMarketCoordinatesWithGeocoding(marketName: string, state?: string): Promise<Coordinates | null> {
+    // First try hardcoded coordinates (fast)
+    const hardcoded = getMarketCoordinates(marketName)
+    if (hardcoded) {
+        return hardcoded
+    }
+
+    // If not found, try geocoding (slower but works for any market)
+    const searchQuery = state ? `${marketName}, ${state}` : marketName
+    return await geocodeLocation(searchQuery)
+}
+
