@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { MarketService, type MarketPrice } from '@/lib/market'
 import { getTranslation, getCurrentLanguage, type Language } from '@/lib/i18n'
 import PriceChart from './PriceChart'
+import LocationSetter from './LocationSetter'
 
 interface MarketCardProps {
   fullView?: boolean
@@ -41,8 +42,10 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
     setLoading(true)
     try {
       const data = await MarketService.fetchMarketPrices()
+      // Calculate real distances based on user location
+      const dataWithDistances = await MarketService.calculateDistances(data)
       // Enrich with enhanced intelligence
-      const enrichedData = MarketService.enrichPriceData(data)
+      const enrichedData = MarketService.enrichPriceData(dataWithDistances)
       setPrices(enrichedData)
       // Format time on client side only to avoid hydration mismatch
       setLastUpdated(new Date().toLocaleTimeString())
@@ -153,6 +156,9 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
       </div>
 
       <div className="glass-effect rounded-3xl p-4 sm:p-6 shadow-xl">
+        {/* Location Setter */}
+        <LocationSetter />
+
         {/* Search Bar */}
         <div className="relative mb-6">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300" size={20} />

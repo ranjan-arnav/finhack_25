@@ -1,4 +1,6 @@
 // lib/market.ts - Market prices service
+import { calculateDistance, getMarketCoordinates, getUserLocationData, type Coordinates } from './geolocation'
+
 export interface MarketPrice {
   id: string
   name: string
@@ -406,5 +408,43 @@ export class MarketService {
     }
 
     return mspData[cropName.toLowerCase()]
+  }
+
+  /**
+   * Calculate distances for market prices based on user location
+   */
+  static async calculateDistances(prices: MarketPrice[]): Promise<MarketPrice[]> {
+    try {
+      // Get user's location
+      const userLocation = await getUserLocationData()
+      if (!userLocation) {
+        console.warn('Could not get user location, using default distances')
+        return prices
+      }
+
+      // Calculate distance for each market
+      return prices.map(price => {
+        // Try to get market coordinates
+        const marketCoords = getMarketCoordinates(price.market)
+
+        if (marketCoords) {
+          // Calculate real distance
+          const distance = calculateDistance(userLocation.coordinates, marketCoords)
+          return { ...price, distance }
+        }
+
+        // If market coordinates not found, estimate based on market name
+        // Local markets are closer, regional markets are farther
+        const estimatedDistance = price.market.toLowerCase().includes('local') ? 15 :
+          price.market.toLowerCase().includes('regional') ? 45 :
+            price.market.toLowerCase().includes('vegetable') ? 8 :
+              25 // default
+
+        return { ...price, distance: estimatedDistance }
+      })
+    } catch (error) {
+      console.error('Error calculating distances:', error)
+      return prices
+    }
   }
 }
