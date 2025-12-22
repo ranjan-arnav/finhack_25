@@ -55,6 +55,7 @@ export const INDIAN_MARKETS: Record<string, Coordinates> = {
     'cotton market': { latitude: 21.1458, longitude: 79.0882 }, // Nagpur
     'spice market': { latitude: 9.9312, longitude: 76.2673 }, // Kerala
     'mahabaleshwar market': { latitude: 17.9244, longitude: 73.6577 }, // Maharashtra
+    'surat apmc': { latitude: 21.1702, longitude: 72.8311 }, // Surat
     'azadpur mandi': { latitude: 28.7041, longitude: 77.1025 }, // Delhi
     'koyambedu market': { latitude: 13.0698, longitude: 80.1951 }, // Chennai
     'vashi apmc': { latitude: 19.0760, longitude: 73.0249 }, // Mumbai
