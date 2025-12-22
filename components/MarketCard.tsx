@@ -412,7 +412,7 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
                     <h4 className="font-bold text-gray-800 dark:text-gray-200">Best Markets for You</h4>
                     {prices
                       .filter(p => p.name === selectedCalcCrop)
-                      .map(p => ({ ...p, netProfit: MarketService.calculateNetProfit(p.price, calcQuantity, p.distance || 10, calcTransportCost) }))
+                      .map(p => ({ ...p, netProfit: MarketService.calculateNetProfit(p.price, calcQuantity, p.distance || 15, calcTransportCost) }))
                       .sort((a, b) => b.netProfit - a.netProfit)
                       .map((market, idx) => (
                         <div key={market.id} className={`p-4 rounded-2xl border-2 transition-all ${idx === 0 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800'}`}>
@@ -423,7 +423,7 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
                                 {idx === 0 && <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">Best Choice</span>}
                               </h5>
                               <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                <MapPin size={14} /> {market.distance} km away
+                                <MapPin size={14} /> {market.distance || 15} km away
                               </p>
                             </div>
                             <div className="text-right">
@@ -433,11 +433,11 @@ export default function MarketCard({ fullView = false }: MarketCardProps) {
                           </div>
                           {/* Visual Bar for Cost vs Profit */}
                           <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex">
-                            <div className="h-full bg-orange-400" style={{ width: `${Math.min(((market.distance || 0) * calcTransportCost / (market.netProfit + (market.distance || 0) * calcTransportCost)) * 100, 100)}%` }}></div>
+                            <div className="h-full bg-orange-400" style={{ width: `${Math.min((((market.distance || 15) * calcTransportCost / (market.netProfit + (market.distance || 15) * calcTransportCost)) * 100), 100)}%` }}></div>
                             <div className="h-full bg-green-500 flex-1"></div>
                           </div>
                           <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                            <span>Transport Cost: ₹{(market.distance || 0) * calcTransportCost}</span>
+                            <span>Transport Cost: ₹{((market.distance || 15) * calcTransportCost).toLocaleString()}</span>
                             <span>Revenue</span>
                           </div>
                         </div>
